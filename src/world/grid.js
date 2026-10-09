@@ -3,7 +3,7 @@
  * Course concept: the search space for pathfinding. A* sees the map as a graph
  * where every walkable tile is a node and neighbouring tiles are connected.
  * Used by: world/mapGen.js, render/mapRenderer.js, scenes/gameScene.js,
- * and later pathfinding/*, movement/agent.js.
+ * scenes/aiLabScene.js, movement/agent.js, movement/steering.js, and later pathfinding/*.
  *
  * Pure logic: no DOM or canvas, so it can be unit-tested in Node.
  *
@@ -13,6 +13,7 @@
  * single number as its id, which pathfinding uses as a node id.
  */
 
+import { MAP } from '../config.js';
 import { TILE_INFO } from './tiles.js';
 
 export function createGrid(width, height, fillTileType) {
@@ -52,4 +53,21 @@ export function tileCost(grid, x, y) {
     return Infinity;
   }
   return TILE_INFO[getTile(grid, x, y)].cost;
+}
+
+// ---- Pixels <-> tiles --------------------------------------------------------
+// Agents live in continuous PIXEL space; the map lives in discrete TILE space.
+//   tile  = floor(pixel / tileSize)
+//   centre of tile in pixels = tile * tileSize + tileSize / 2
+
+export function pixelToTile(pixel) {
+  return Math.floor(pixel / MAP.tileSize);
+}
+
+export function tileCenterPixel(tile) {
+  return tile * MAP.tileSize + MAP.tileSize / 2;
+}
+
+export function isWalkableAtPixel(grid, point) {
+  return isWalkable(grid, pixelToTile(point.x), pixelToTile(point.y));
 }

@@ -4,8 +4,9 @@
  * the seeded RNG and the map; units, AI and overlays are added in later phases.
  * Used by: main.js (registered with the SceneManager).
  *
- * Controls in P1:
+ * Controls so far:
  *   R          - generate a new map with a new seed
+ *   L          - open the AI Lab (temporary until the main menu exists in P7)
  *   mouse over - shows the tile type and cost under the cursor
  */
 
@@ -26,8 +27,12 @@ export class GameScene {
     this.hoveredTile = null;
   }
 
+  // Only build the map the first time, so visiting the AI Lab and coming back
+  // keeps the current map.
   enter() {
-    this.startNewMap(this.app.seed);
+    if (this.map === null) {
+      this.startNewMap(this.app.seed);
+    }
   }
 
   exit() {}
@@ -47,6 +52,11 @@ export class GameScene {
       // sequence of maps you get by pressing R is reproducible.
       const nextSeed = this.rng.int(1, 999999);
       this.startNewMap(nextSeed);
+    }
+    // Temporary way into the AI Lab until the main menu exists (P7).
+    if (input.wasPressed('l')) {
+      this.app.scenes.switchTo('lab');
+      return;
     }
 
     this.hoveredTile = this.tileUnderMouse();
@@ -87,7 +97,7 @@ export class GameScene {
       const costText = info.walkable ? String(info.cost) : 'blocked';
       lines.push('Tile (' + this.hoveredTile.x + ', ' + this.hoveredTile.y + '): ' + info.name + ', cost ' + costText);
     }
-    lines.push('R: new map');
+    lines.push('R: new map   L: AI Lab');
     return lines;
   }
 }

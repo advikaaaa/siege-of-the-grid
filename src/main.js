@@ -13,6 +13,7 @@ import { startLoop } from './core/loop.js';
 import { Input } from './core/input.js';
 import { SceneManager } from './core/sceneManager.js';
 import { GameScene } from './scenes/gameScene.js';
+import { AiLabScene } from './scenes/aiLabScene.js';
 
 // Lets you reproduce a demo by opening e.g. index.html?seed=4242
 function readSeedFromUrl() {
@@ -37,9 +38,12 @@ const app = {
   scenes: new SceneManager(),
   seed: readSeedFromUrl(),
   loopStats: { fps: 0 },
+  // 'steering' or 'kinematic'. Shared by all scenes, switched with K.
+  movementMode: 'steering',
 };
 
 app.scenes.register('game', new GameScene(app));
+app.scenes.register('lab', new AiLabScene(app));
 app.scenes.switchTo('game');
 
 function update(dt) {

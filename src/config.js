@@ -40,6 +40,69 @@ export const BASE = {
   height: 6,
 };
 
+// ---- Agents (all distances in PIXELS, times in SECONDS) ----------------------
+// 1 tile = 12 px, so maxSpeed 70 px/s is just under 6 tiles per second.
+export const AGENT = {
+  maxSpeed: 70,
+  maxForce: 200,   // with mass 1 this is also the max acceleration (px/s^2)
+  mass: 1,
+  radius: 4,
+};
+
+// ---- Steering behaviors ------------------------------------------------------
+export const STEERING = {
+  // Every "desired velocity" behavior returns force = (desired - current) / timeToTarget.
+  // A smaller timeToTarget means "I want to reach the desired velocity faster",
+  // i.e. a bigger force. maxForce then caps it.
+  timeToTarget: 0.1,
+
+  slowingRadius: 48,         // arrive: start slowing down this far (px) from the target
+  maxPredictionTime: 1.5,    // pursue/evade: never look further ahead than this (s)
+  panicRadius: 120,          // flee/evade: only run when the threat is closer than this
+
+  // wander: a circle projected wanderDistance ahead; we seek a point on its rim
+  wanderDistance: 30,
+  wanderRadius: 14,
+  wanderJitter: 8,           // how fast the point moves around the rim (rad/s)
+  kinematicMaxRotation: 4,   // kinematic wander: max turn rate (rad/s)
+
+  // obstacle avoidance: 3 feeler rays (front, front-left, front-right)
+  feelerMinLength: 10,       // feeler length when standing still (px)
+  feelerLength: 28,          // extra length at full speed (px)
+  sideFeelerAngle: 0.6,      // angle of side feelers from the heading (rad, ~34 deg)
+  sideFeelerScale: 0.7,      // side feelers are 70% as long as the front one
+  feelerSampleStep: 3,       // check the ray every 3 px for a blocked tile
+  avoidanceForce: 400,       // push when the obstacle is right at the agent
+
+  // separation: inverse-square push away from close neighbours
+  separationRadius: 18,
+  separationStrength: 12000, // force = strength / distance^2  (at 8 px: 187)
+
+  // path following: a waypoint counts as reached within this distance (px)
+  waypointRadius: 8,
+
+  // Blending weights. Order matters too: see combinePrioritized() in steering.js.
+  weights: {
+    obstacleAvoidance: 2.0,
+    separation: 1.5,
+    seek: 1,
+    flee: 1,
+    arrive: 1,
+    pursue: 1,
+    evade: 1,
+    wander: 1,
+    followPath: 1,
+    formation: 1,
+  },
+};
+
+// ---- AI Lab --------------------------------------------------------------------
+export const LAB = {
+  agentCount: 6,
+  targetOrbitRadius: 180,    // pursue/evade target dot moves on this circle (px)
+  targetOrbitSpeed: 0.7,     // angular speed of the target dot (rad/s)
+};
+
 // ---- Map generation ---------------------------------------------------------
 export const MAPGEN = {
   // The river: 3 tiles wide, centred near the middle column, drifting left and

@@ -24,7 +24,10 @@ export function drawMap(ctx, map) {
     }
   }
 
-  drawBase(ctx, map.base);
+  // The AI Lab arena has no base (map.base is null).
+  if (map.base !== null) {
+    drawBase(ctx, map.base);
+  }
 }
 
 // The base is only an outline for now; it gets HP and gameplay in P5.

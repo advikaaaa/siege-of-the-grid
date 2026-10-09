@@ -55,6 +55,13 @@ export function createRng(seed) {
     return array[int(0, array.length - 1)];
   }
 
+  // "Random binomial": next() - next(), a number in (-1, 1) where values near 0
+  // are more likely than values near -1 or 1 (a triangle-shaped distribution).
+  // Used by wander so that small turns are common and sharp turns are rare.
+  function binomial() {
+    return next() - next();
+  }
+
   return {
     seed: seed,
     next: next,
@@ -62,5 +69,6 @@ export function createRng(seed) {
     int: int,
     chance: chance,
     pick: pick,
+    binomial: binomial,
   };
 }
