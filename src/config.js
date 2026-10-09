@@ -40,6 +40,14 @@ export const BASE = {
   height: 6,
 };
 
+// ---- Drawing ------------------------------------------------------------------
+export const RENDER = {
+  // Units are DRAWN this many times larger than their physical radius. Only the
+  // picture changes: collisions, separation and path clearance keep using the
+  // real radius, so units still fit through the 1-tile (12 px) corridors.
+  unitDrawScale: 1.6,
+};
+
 // ---- Agents (all distances in PIXELS, times in SECONDS) ----------------------
 // 1 tile = 12 px, so maxSpeed 70 px/s is just under 6 tiles per second.
 export const AGENT = {

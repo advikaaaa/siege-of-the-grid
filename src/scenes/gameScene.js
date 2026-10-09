@@ -23,7 +23,7 @@ import { DIFFICULTIES } from '../ai/difficulty.js';
 import { inBounds, getTile } from '../world/grid.js';
 import { TILE_INFO } from '../world/tiles.js';
 import { drawMap, drawTileHighlight } from '../render/mapRenderer.js';
-import { drawUnit, drawHealthBar } from '../render/unitRenderer.js';
+import { drawUnit, drawHealthBar, drawnRadius } from '../render/unitRenderer.js';
 import { strokeCircle } from '../render/draw.js';
 import {
   drawRawPath, drawFollowerPath, drawHpaOverlay, drawGoalMarker, drawStateLabels,
@@ -227,7 +227,7 @@ export class GameScene {
       }
       // A magenta ring for one second after a LOCAL REPLAN.
       if (unit.alive && unit.replanFlashTimer > 0) {
-        strokeCircle(ctx, unit.agent.position, unit.agent.radius + 6, '#ff00ff');
+        strokeCircle(ctx, unit.agent.position, drawnRadius(unit.agent) + 6, '#ff00ff');
       }
     }
   }
@@ -236,7 +236,7 @@ export class GameScene {
   drawWaitingUnits(ctx) {
     for (const unit of this.world.units) {
       if (unit.alive && unit.isWaiting) {
-        strokeCircle(ctx, unit.agent.position, unit.agent.radius + 5, '#ffd84d');
+        strokeCircle(ctx, unit.agent.position, drawnRadius(unit.agent) + 5, '#ffd84d');
       }
     }
   }

@@ -16,7 +16,7 @@ import { MAP } from '../config.js';
 import { tilePathToPixels, tileToPixel } from '../pathfinding/smoothing.js';
 import { clusterBounds } from '../pathfinding/hpa.js';
 import { fillCircle, strokeCircle, drawLine } from './draw.js';
-import { drawSteeringVectors, drawFeelers } from './unitRenderer.js';
+import { drawSteeringVectors, drawFeelers, drawnRadius } from './unitRenderer.js';
 
 const RAW_PATH_COLOR = '#ff9f1c';
 const SMOOTH_PATH_COLOR = '#00e5ff';
@@ -110,7 +110,7 @@ export function drawStateLabels(ctx, units) {
       continue;
     }
     const x = unit.agent.position.x;
-    const y = unit.agent.position.y - unit.agent.radius - 8;
+    const y = unit.agent.position.y - drawnRadius(unit.agent) - 8;
     ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
     const width = ctx.measureText(unit.brain.current).width + 4;
     ctx.fillRect(x - width / 2, y - 8, width, 10);

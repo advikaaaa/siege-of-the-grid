@@ -6,7 +6,7 @@
  * scenes/lab/behaviorPlayground.js.
  */
 
-import { STEERING } from '../config.js';
+import { STEERING, RENDER } from '../config.js';
 import { add, fromAngle } from '../core/vector.js';
 import { computeFeelers, castFeeler, wanderCircle } from '../movement/steering.js';
 import { fillCircle, strokeCircle, drawLine, drawArrow } from './draw.js';
@@ -31,10 +31,18 @@ const VELOCITY_COLOR = '#ffffff';
 const VELOCITY_DRAW_SCALE = 0.5;
 const FORCE_DRAW_SCALE = 0.08;
 
+// Radius used for DRAWING a unit (bigger than its physical radius, see RENDER
+// in config.js). Rings and labels around a unit use it too, so they sit outside
+// the drawn body.
+export function drawnRadius(agent) {
+  return agent.radius * RENDER.unitDrawScale;
+}
+
 // The body is a filled circle; a short line shows which way it is facing.
 export function drawAgent(ctx, agent, color) {
-  fillCircle(ctx, agent.position, agent.radius, color);
-  const nose = add(agent.position, fromAngle(agent.heading, agent.radius + 4));
+  const radius = drawnRadius(agent);
+  fillCircle(ctx, agent.position, radius, color);
+  const nose = add(agent.position, fromAngle(agent.heading, radius + 4));
   drawLine(ctx, agent.position, nose, '#000000', 2);
 }
 
@@ -84,8 +92,9 @@ export function drawUnit(ctx, unit) {
   }
   const agent = unit.agent;
   drawAgent(ctx, agent, unit.color);
+  const radius = drawnRadius(agent);
   if (unit.squad !== null && unit.squad.leader === unit) {
-    strokeCircle(ctx, agent.position, agent.radius + 2, '#ffffff');
+    strokeCircle(ctx, agent.position, radius + 2, '#ffffff');
   }
-  drawHealthBar(ctx, agent.position, 12, agent.radius + 5, unit.hp / unit.maxHp);
+  drawHealthBar(ctx, agent.position, radius * 2 + 4, radius + 5, unit.hp / unit.maxHp);
 }
