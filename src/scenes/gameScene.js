@@ -13,18 +13,23 @@
  *   1          - overlay: paths (raw A* orange, followed waypoints cyan)
  *   2          - overlay: HPA* clusters, entrances and last abstract route
  *   4          - overlay: FSM state above every NPC
+ *   5          - overlay: bridge reservation timeline (+ waiting units ringed)
+ *   7          - overlay: spatial hash cells
+ *   T          - stress test: spawn 300 extra marching enemies
  *   R          - new map with a new seed (restarts the game)
  *   L          - open the AI Lab (temporary until the main menu exists in P7)
  */
 
-import { MAP } from '../config.js';
+import { MAP, RESERVATIONS } from '../config.js';
 import { GameWorld } from '../game/gameWorld.js';
 import { inBounds, getTile } from '../world/grid.js';
 import { TILE_INFO } from '../world/tiles.js';
 import { drawMap, drawTileHighlight } from '../render/mapRenderer.js';
 import { drawUnit, drawHealthBar } from '../render/unitRenderer.js';
+import { strokeCircle } from '../render/draw.js';
 import {
   drawRawPath, drawFollowerPath, drawHpaOverlay, drawGoalMarker, drawStateLabels,
+  drawBridgeTimeline, drawBridgeLabels, drawSpatialHash,
 } from '../render/overlays.js';
 import { drawTextPanel } from '../render/hud.js';
 
@@ -33,7 +38,7 @@ export class GameScene {
     this.app = app;
     this.world = null;
     this.hoveredTile = null;
-    this.overlays = { paths: false, hpa: false, states: false };
+    this.overlays = { paths: false, hpa: false, states: false, bridges: false, hash: false };
   }
 
   // Only build the world the first time, so visiting the AI Lab and coming back
@@ -88,6 +93,15 @@ export class GameScene {
     if (input.wasPressed('4')) {
       this.overlays.states = !this.overlays.states;
     }
+    if (input.wasPressed('5')) {
+      this.overlays.bridges = !this.overlays.bridges;
+    }
+    if (input.wasPressed('7')) {
+      this.overlays.hash = !this.overlays.hash;
+    }
+    if (input.wasPressed('t')) {
+      world.spawnStressTest();
+    }
     // Temporary way into the AI Lab until the main menu exists (P7).
     if (input.wasPressed('l')) {
       this.app.scenes.switchTo('lab');
@@ -119,8 +133,11 @@ export class GameScene {
     const world = this.world;
     drawMap(ctx, world.map);
     if (this.overlays.hpa) {
-      const lastRoute = world.stats.lastHpa;
+      const lastRoute = world.paths.stats.lastHpa;
       drawHpaOverlay(ctx, world.hpaGraph, lastRoute !== null ? lastRoute.abstractTiles : null);
+    }
+    if (this.overlays.hash) {
+      drawSpatialHash(ctx, world.hash);
     }
     drawHealthBar(ctx, { x: world.base.centre.x, y: world.base.rect.top }, 48, 14, world.base.hp / world.base.maxHp);
 
@@ -133,6 +150,11 @@ export class GameScene {
     }
     if (this.overlays.states) {
       drawStateLabels(ctx, world.units);
+    }
+    if (this.overlays.bridges) {
+      this.drawWaitingUnits(ctx);
+      drawBridgeLabels(ctx, world.map.bridges);
+      drawBridgeTimeline(ctx, world.reservations, world.map.bridges, world.time, RESERVATIONS.bridgeCapacity);
     }
     if (this.hoveredTile !== null) {
       drawTileHighlight(ctx, this.hoveredTile.x, this.hoveredTile.y);
@@ -155,6 +177,19 @@ export class GameScene {
       const hasPath = order.type === 'path' || order.type === 'route';
       if (unit.alive && hasPath && !order.follower.finished) {
         drawFollowerPath(ctx, order.follower, unit.agent.position);
+      }
+      // A magenta ring for one second after a LOCAL REPLAN.
+      if (unit.alive && unit.replanFlashTimer > 0) {
+        strokeCircle(ctx, unit.agent.position, unit.agent.radius + 6, '#ff00ff');
+      }
+    }
+  }
+
+  // Overlay 5: units holding at a bridge entrance for their reserved slot.
+  drawWaitingUnits(ctx) {
+    for (const unit of this.world.units) {
+      if (unit.alive && unit.isWaiting) {
+        strokeCircle(ctx, unit.agent.position, unit.agent.radius + 5, '#ffd84d');
       }
     }
   }
@@ -194,15 +229,25 @@ export class GameScene {
       'Movement: ' + this.app.movementMode.toUpperCase() + ' (K)   Formation: ' + world.formationName +
         ' (F)   ' + (world.guardMode ? 'GUARDING base (G)' : 'Following (G to guard)'),
     ];
-    const astar = world.stats.lastAstar;
+    const pathStats = world.paths.stats;
+    const unitCount = world.units.filter((unit) => unit.alive).length;
+    // Brute force would compare every unit with every other one: n * n checks.
+    lines.push('Units: ' + unitCount + '   Neighbour checks: ' + world.stats.neighbourChecks +
+      ' (brute force: ' + unitCount * unitCount + ')');
+    lines.push('Path requests this step: ' + pathStats.processedThisStep + '   queued: ' + world.paths.queuedCount() +
+      '   cache hits: ' + pathStats.cacheHits + '   local replans: ' + world.stats.localReplans);
+    const astar = pathStats.lastAstar;
     if (astar !== null) {
       lines.push('Last A*: ' + astar.nodesExpanded + ' nodes, ' + astar.timeMs.toFixed(2) + ' ms');
     }
-    const hpa = world.stats.lastHpa;
+    const hpa = pathStats.lastHpa;
     if (hpa !== null) {
       const s = hpa.stats;
       lines.push('Last HPA*: ' + s.abstractNodesExpanded + ' abstract + ' + s.insertionNodesExpanded +
         ' insertion nodes, ' + s.timeMs.toFixed(2) + ' ms' + (s.fromCache ? ' (cached route)' : ''));
+    }
+    if (pathStats.lastCrossing !== null) {
+      lines.push('Bridge plan: ' + pathStats.lastCrossing.text);
     }
     if (this.hoveredTile !== null) {
       const info = TILE_INFO[getTile(world.grid, this.hoveredTile.x, this.hoveredTile.y)];
@@ -210,7 +255,9 @@ export class GameScene {
       lines.push('Tile (' + this.hoveredTile.x + ', ' + this.hoveredTile.y + '): ' + info.name + ', cost ' + costText);
     }
     lines.push('Overlays: 1 paths ' + onOff(this.overlays.paths) + '  2 HPA* ' + onOff(this.overlays.hpa) +
-      '  4 FSM ' + onOff(this.overlays.states) + '   R: new game   L: AI Lab');
+      '  4 FSM ' + onOff(this.overlays.states) + '  5 bridges ' + onOff(this.overlays.bridges) +
+      '  7 hash ' + onOff(this.overlays.hash));
+    lines.push('T: stress test (+300 enemies)   R: new game   L: AI Lab');
     return lines;
   }
 }

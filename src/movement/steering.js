@@ -19,7 +19,7 @@
 
 import { STEERING } from '../config.js';
 import {
-  vec, add, subtract, scale, length, normalize, distance, fromAngle, rotate, dot,
+  vec, add, subtract, scale, length, normalize, distance, fromAngle, rotate, dot, limit,
 } from '../core/vector.js';
 import { isWalkable, pixelToTile } from '../world/grid.js';
 
@@ -183,12 +183,13 @@ export function castFeeler(grid, feeler) {
 }
 
 // OBSTACLE AVOIDANCE: for each feeler that hits a wall, push along the wall's
-// normal. The push is stronger when the wall is closer AND when we are moving
-// more directly into it:
+// normal. The push is stronger when the wall is closer, when we move more
+// directly into it, and when we move faster:
 //   closeness = 1 - hitDistance / feelerLength              (1 = wall right here)
 //   headOn    = max(0, -dot(wallNormal, normalize(velocity))) (1 = straight at it,
 //                                                              0 = parallel or away)
-//   strength  = avoidanceForce * closeness * headOn
+//   speedRatio = |velocity| / maxSpeed                      (a crawl needs little push)
+//   strength  = avoidanceForce * closeness * headOn * speedRatio
 //
 // WHY headOn (both found in headless test runs of the full game):
 //  - A unit walking ALONG a wall (smoothed paths often do) keeps touching it with
@@ -199,12 +200,16 @@ export function castFeeler(grid, feeler) {
 //    its old direction. If that points at a wall, a heading-based push would pin
 //    it there forever (it can never start moving to turn away). A unit that is
 //    not moving cannot collide, so it gets no avoidance push at all.
+//  - speedRatio: in a 1-tile corridor a unit drifting sideways at 1 px/s got the
+//    FULL push from the rock beside it, which again ate the whole force budget.
+//    The push needed to avoid a wall grows with the speed you hit it at.
 export function obstacleAvoidance(agent, grid) {
   let total = vec(0, 0);
   if (length(agent.velocity) === 0) {
     return total;
   }
   const movingDirection = normalize(agent.velocity);
+  const speedRatio = length(agent.velocity) / agent.maxSpeed;
   for (const feeler of computeFeelers(agent)) {
     const hit = castFeeler(grid, feeler);
     if (hit === null) {
@@ -213,7 +218,7 @@ export function obstacleAvoidance(agent, grid) {
     const feelerLength = distance(feeler.start, feeler.end);
     const closeness = 1 - hit.distance / feelerLength;
     const headOn = Math.max(0, -dot(hit.normal, movingDirection));
-    const strength = STEERING.avoidanceForce * closeness * headOn;
+    const strength = STEERING.avoidanceForce * closeness * headOn * speedRatio;
     total = add(total, scale(hit.normal, strength));
   }
   return total;
@@ -295,11 +300,15 @@ export function keepFormationSlot(agent, leaderPosition, leaderHeading, slotOffs
 // Weighted blending WITH priority ("weighted truncated running sum with
 // prioritization", Buckland, "Programming Game AI by Example").
 //
-// `weightedForces` is a list of { name, force, weight } in PRIORITY order
-// (most important first, e.g. obstacle avoidance, then separation, then the goal).
-// We have a budget of maxForce. Going down the list, each weighted force takes
-// what it needs from the budget. When the budget runs out, the remaining
-// (less important) behaviors get nothing.
+// `weightedForces` is a list of { name, force, weight, maxShare? } in PRIORITY
+// order (most important first, e.g. obstacle avoidance, then separation, then
+// the goal). We have a budget of maxForce. Going down the list, each weighted
+// force takes what it needs from the budget. When the budget runs out, the
+// remaining (less important) behaviors get nothing.
+// Optional maxShare (0..1) caps how much of the WHOLE budget one behavior may
+// take. We give separation maxShare 0.5: in a crowd its inverse-square push can
+// be huge, and without a cap it starved path following completely, freezing a
+// unit surrounded by its own allies (seen in headless game runs).
 //
 // WHY not just add everything up? A plain weighted sum lets a strong "seek the
 // target" cancel out "don't walk into that rock". With priority, safety
@@ -312,7 +321,10 @@ export function combinePrioritized(weightedForces, maxForce) {
     if (remaining <= 0) {
       break;
     }
-    const weighted = scale(item.force, item.weight);
+    let weighted = scale(item.force, item.weight);
+    if (item.maxShare !== undefined) {
+      weighted = limit(weighted, maxForce * item.maxShare);
+    }
     const magnitude = length(weighted);
     if (magnitude <= remaining) {
       total = add(total, weighted);

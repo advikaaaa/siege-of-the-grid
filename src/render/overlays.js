@@ -4,8 +4,9 @@
  *   1 - paths: raw A* path (orange, through every tile centre) vs smoothed path (cyan)
  *   2 - HPA*: cluster grid, entrances, abstract path
  *   4 - FSM state labels above units
- *   (3, 5, 6, 7 are added in later phases: steering vectors, bridge
- *    reservations, sight radii, spatial hash cells.)
+ *   5 - bridge reservation timeline
+ *   7 - spatial hash cells
+ *   (3 and 6 are added in P7: steering vectors, sight radii.)
  * Used by: scenes/gameScene.js, scenes/lab/pathCompare.js.
  */
 
@@ -114,4 +115,80 @@ export function drawStateLabels(ctx, units) {
     ctx.fillText(unit.brain.current, x, y);
   }
   ctx.textAlign = 'left';
+}
+
+// ---- Overlay 5: bridge reservation timeline ------------------------------------
+
+const TIMELINE_SECONDS = 30;   // how far ahead the timeline shows
+const BRIDGE_COLORS = ['#ffd84d', '#4dd2ff', '#ff66c4'];
+
+// One lane per bridge at the bottom of the screen. Time runs left to right from
+// "now"; every reservation is a bar from its start to its end, its height
+// proportional to its size (units), the lane height being the bridge capacity.
+export function drawBridgeTimeline(ctx, reservations, bridges, now, capacity) {
+  const left = 60;
+  const width = 520;
+  const laneHeight = 30;
+  const top = ctx.canvas.height - bridges.length * (laneHeight + 6) - 26;
+  const pixelsPerSecond = width / TIMELINE_SECONDS;
+
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+  ctx.fillRect(left - 56, top - 20, width + 66, bridges.length * (laneHeight + 6) + 42);
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '11px sans-serif';
+  ctx.fillText('Bridge reservations (next ' + TIMELINE_SECONDS + ' s, lane height = capacity ' + capacity + ')', left, top - 7);
+
+  for (const bridge of bridges) {
+    const laneTop = top + bridge.id * (laneHeight + 6);
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
+    ctx.fillRect(left, laneTop, width, laneHeight);
+    ctx.fillStyle = BRIDGE_COLORS[bridge.id % BRIDGE_COLORS.length];
+    ctx.fillText('B' + (bridge.id + 1), left - 30, laneTop + laneHeight / 2 + 4);
+
+    // Stack bars so that overlapping reservations are drawn on top of each other.
+    let stackedSize = 0;
+    const sorted = reservations.reservationsFor(bridge.id).slice().sort((a, b) => a.start - b.start);
+    for (const reservation of sorted) {
+      const x0 = left + Math.max(0, reservation.start - now) * pixelsPerSecond;
+      const x1 = left + Math.min(TIMELINE_SECONDS, reservation.end - now) * pixelsPerSecond;
+      if (x1 <= left || x0 >= left + width) {
+        continue;
+      }
+      const barHeight = (reservation.size / capacity) * laneHeight;
+      const y = laneTop + laneHeight - ((stackedSize + reservation.size) / capacity) * laneHeight;
+      ctx.fillStyle = BRIDGE_COLORS[bridge.id % BRIDGE_COLORS.length];
+      ctx.globalAlpha = 0.75;
+      ctx.fillRect(x0, Math.max(laneTop, y), Math.max(2, x1 - x0), barHeight);
+      ctx.globalAlpha = 1;
+      stackedSize = (stackedSize + reservation.size) % capacity;
+    }
+  }
+  ctx.fillStyle = '#ffffff';
+  ctx.fillText('now', left - 8, top + bridges.length * (laneHeight + 6) + 10);
+  ctx.fillText('+' + TIMELINE_SECONDS + ' s', left + width - 26, top + bridges.length * (laneHeight + 6) + 10);
+}
+
+// Small "B1" labels on the map next to each bridge.
+export function drawBridgeLabels(ctx, bridges) {
+  const size = MAP.tileSize;
+  ctx.font = 'bold 11px sans-serif';
+  for (const bridge of bridges) {
+    ctx.fillStyle = BRIDGE_COLORS[bridge.id % BRIDGE_COLORS.length];
+    ctx.fillText('B' + (bridge.id + 1), (bridge.right + 1.5) * size, bridge.top * size - 2);
+  }
+}
+
+// ---- Overlay 7: spatial hash cells ----------------------------------------------
+
+// Every occupied cell is outlined, with the number of units inside it.
+export function drawSpatialHash(ctx, hash) {
+  const size = hash.cellSize;
+  ctx.font = '9px sans-serif';
+  for (const cell of hash.occupiedCells()) {
+    ctx.strokeStyle = 'rgba(255, 255, 0, 0.6)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(cell.column * size + 0.5, cell.row * size + 0.5, size - 1, size - 1);
+    ctx.fillStyle = '#ffff66';
+    ctx.fillText(String(cell.count), cell.column * size + 2, cell.row * size + 9);
+  }
 }

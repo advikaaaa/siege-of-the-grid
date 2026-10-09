@@ -77,6 +77,7 @@ export const STEERING = {
   // separation: inverse-square push away from close neighbours
   separationRadius: 18,
   separationStrength: 12000, // force = strength / distance^2  (at 8 px: 187)
+  separationMaxShare: 0.5,   // separation may use at most half of maxForce (in the game)
 
   // path following: a waypoint counts as reached within this distance (px)
   waypointRadius: 8,
@@ -124,7 +125,7 @@ export const UNIT_STATS = {
 };
 
 export const COMBAT = {
-  baseMaxHp: 2000,
+  baseMaxHp: 3000,
   commanderRespawnSeconds: 5,
   retreatBelowHpFraction: 0.3,   // ATTACK -> RETREAT when HP < 30%
   regroupAboveHpFraction: 0.7,   // RETREAT -> REGROUP when HP > 70%
@@ -173,6 +174,33 @@ export const WAVES = {
   delayBetweenWaves: 10,  // after a wave is cleared
   delayBetweenSquads: 2.5,
   maxWaveSeconds: 120,    // start the next wave anyway after this long
+};
+
+// ---- Performance for many NPCs -----------------------------------------------------
+export const PERFORMANCE = {
+  // Spatial hash cell size (px). At least the separation radius, so separation
+  // only ever needs the 3 x 3 cells around a unit.
+  hashCellSize: 24,
+  // Path service: how many path requests are answered per simulation step
+  // (time slicing). The rest wait in the queue for later steps.
+  pathRequestsPerStep: 4,
+  pathCacheSize: 200,     // A* results remembered (least recently used are dropped)
+  stressTestEnemies: 300,
+};
+
+// ---- Time-aware planning at the bridges ----------------------------------------------
+export const RESERVATIONS = {
+  bridgeCapacity: 6,      // units allowed on one bridge at the same time
+  safetyMargin: 0.5,      // s added on both sides of every reservation (ETAs are estimates)
+  holdRadius: 14,         // px: a unit this close to its bridge entrance waits there
+  releaseRadius: 16,      // px: a unit this close to the far end has crossed
+  expireAfter: 10,        // s: forget reservations that ended this long ago
+};
+
+// ---- Local replanning ---------------------------------------------------------------
+export const REPLAN = {
+  noProgressSeconds: 1.5, // no progress towards the waypoint for this long = stuck
+  minProgress: 4,         // px closer to the waypoint that counts as progress
 };
 
 // ---- AI Lab --------------------------------------------------------------------

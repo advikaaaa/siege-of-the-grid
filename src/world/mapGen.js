@@ -32,8 +32,10 @@ const FOUR_DIRECTIONS = [
   { x: 0, y: -1 },
 ];
 
-// Returns { grid, bridges, base, attempts }.
+// Returns { grid, bridges, riverLeft, base, attempts }.
 // bridges: array of { id, left, right, top, bottom } in tile coordinates (inclusive).
+// riverLeft[y]: leftmost water/bridge column on row y (tells which side of the
+// river a tile is on; used by the bridge planner in pathService.js).
 export function generateMap(rng) {
   for (let attempt = 1; attempt <= MAPGEN.maxAttempts; attempt++) {
     const map = buildCandidateMap(rng);
@@ -54,7 +56,7 @@ function buildCandidateMap(rng) {
   growBlobs(grid, rng, TILE.ROCK, MAPGEN.rockBlobCount, MAPGEN.rockBlobSteps, bridges);
   growBlobs(grid, rng, TILE.FOREST, MAPGEN.forestBlobCount, MAPGEN.forestBlobSteps, bridges);
 
-  return { grid: grid, bridges: bridges, base: BASE, attempts: 0 };
+  return { grid: grid, bridges: bridges, riverLeft: riverLeft, base: BASE, attempts: 0 };
 }
 
 // ---- Bridges and river -------------------------------------------------------

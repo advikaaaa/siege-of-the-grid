@@ -71,7 +71,7 @@ export const ENEMY_TRANSITIONS = {
   SIEGE: { HP_LOW: 'RETREAT' },
 };
 
-// world must provide: grid, rng, base, playerUnits(),
+// world must provide: grid, rng, base, opponentsNear(unit, radius),
 // requestPath(unit, tile, callback), requestRoute(unit, tile, callback), and
 // aiSettings = { reactionTime, chooseAction(rng, unit), chooseFlankSide(rng) }.
 // HOW the enemy chooses (uncertain dice or predictable rules, P7) lives in
@@ -93,7 +93,7 @@ export function createEnemyBrain(unit, world) {
   }
 
   function lookForDefender() {
-    return findVisibleEnemy(unit, world.playerUnits(), grid, unit.sightRange);
+    return findVisibleEnemy(unit, world.opponentsNear(unit, unit.sightRange), grid, unit.sightRange);
   }
 
   // ---- MARCH ----------------------------------------------------------------
@@ -103,12 +103,14 @@ export function createEnemyBrain(unit, world) {
       return;
     }
     unit.waitingForPath = true;
+    // The leader plans for the whole squad, including WHEN it crosses the river.
+    const options = { crossing: true, groupSize: unit.squad.members.length };
     world.requestRoute(unit, world.base.frontTile, (route) => {
       unit.waitingForPath = false;
       if (route !== null && unit.alive && brain.current === 'MARCH') {
         unit.order = routeOrder(route, grid, unit.agent.radius);
       }
-    });
+    }, options);
   }
 
   function marchAsMember(dt) {
@@ -222,7 +224,7 @@ export function createEnemyBrain(unit, world) {
           if (route !== null && unit.alive && brain.current === 'RETREAT') {
             unit.order = routeOrder(route, grid, unit.agent.radius);
           }
-        });
+        }, { crossing: true, groupSize: 1 });
       },
       update(dt, fsm) {
         unit.hp = Math.min(unit.maxHp, unit.hp + COMBAT.retreatRegenPerSecond * dt);

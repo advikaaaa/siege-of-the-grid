@@ -1,20 +1,27 @@
 /*
  * gameWorld.js - the whole game simulation (no drawing, no input handling).
  * Course concept: the per-step pipeline of a game AI:
- *     waves -> perception timers -> AI decisions (brains) -> paths
- *           -> movement (kinematic or steering) -> combat -> deaths -> win/lose
+ *     waves -> spatial hash rebuild -> perception timers -> AI decisions (brains)
+ *           -> path service (time-sliced) -> movement (kinematic or steering)
+ *           -> local replanning + bridge bookkeeping -> combat -> deaths -> win/lose
  * Used by: scenes/gameScene.js (which adds input and rendering).
  *
  * Pure logic: no DOM or canvas, so the whole game can run headless in tests.
  */
 
-import { AI, BASE, FORMATION, STEERING, WAVES, COMBAT, PLAYER_SPAWN_OFFSET_X } from '../config.js';
+import {
+  AI, BASE, FORMATION, STEERING, WAVES, COMBAT, PLAYER_SPAWN_OFFSET_X,
+  PERFORMANCE, RESERVATIONS, REPLAN, MAP,
+} from '../config.js';
 import { vec, distance } from '../core/vector.js';
 import { createRng } from '../core/rng.js';
+import { SpatialHash } from '../core/spatialHash.js';
 import { generateMap } from '../world/mapGen.js';
-import { tileCenterPixel, isWalkable } from '../world/grid.js';
-import { findPath } from '../pathfinding/astar.js';
-import { buildAbstractGraph, hpaFindPath } from '../pathfinding/hpa.js';
+import { tileCenterPixel, isWalkable, pixelToTile } from '../world/grid.js';
+import { buildAbstractGraph } from '../pathfinding/hpa.js';
+import { smoothPath, tilePathToPixels } from '../pathfinding/smoothing.js';
+import { PathService } from '../pathfinding/pathService.js';
+import { ReservationTable } from '../pathfinding/reservations.js';
 import { formationOffsets, FORMATION_NAMES } from '../movement/formations.js';
 import { moveUnit, pathOrder, idleOrder, followerFromTiles } from '../movement/unitMovement.js';
 import { createEnemyBrain } from '../ai/enemyBrain.js';
@@ -58,7 +65,19 @@ export class GameWorld {
       chooseFlankSide: (rng) => (rng.chance(0.5) ? 1 : -1),
     };
 
-    this.stats = { lastAstar: null, lastHpa: null };
+    // Performance helpers (P6).
+    this.hash = new SpatialHash(PERFORMANCE.hashCellSize, this.grid.width * MAP.tileSize, this.grid.height * MAP.tileSize);
+    const bridgeIds = this.map.bridges.map((bridge) => bridge.id);
+    this.reservations = new ReservationTable(bridgeIds, RESERVATIONS.bridgeCapacity);
+    this.paths = new PathService({
+      grid: this.grid,
+      hpaGraph: this.hpaGraph,
+      bridges: this.map.bridges,
+      riverLeft: this.map.riverLeft,
+      reservations: this.reservations,
+    });
+    this.stats = { localReplans: 0, neighbourChecks: 0 };
+
     this.commander = this.spawnPlayerUnits();
     this.waves = new WaveManager();
   }
@@ -122,10 +141,6 @@ export class GameWorld {
 
   // ---- Queries used by brains and movement ------------------------------------------
 
-  playerUnits() {
-    return this.units.filter((unit) => unit.team === 'player' && unit.alive);
-  }
-
   enemyUnits() {
     return this.units.filter((unit) => unit.team === 'enemy' && unit.alive);
   }
@@ -134,16 +149,21 @@ export class GameWorld {
     return this.enemyUnits().length;
   }
 
-  // AGENTS of the units close enough to matter for separation. Brute force: every
-  // unit checks every other unit, O(n^2). P6 replaces this with a spatial hash.
+  // AGENTS of the units close enough to matter for separation. The spatial hash
+  // only looks at the cells around the unit instead of at every unit (O(n^2)).
   neighboursOf(unit) {
-    const result = [];
-    for (const other of this.units) {
-      if (other.alive && distance(unit.agent.position, other.agent.position) < STEERING.separationRadius) {
-        result.push(other.agent);
-      }
+    const nearby = this.hash.queryRadius(unit.agent.position, STEERING.separationRadius);
+    const agents = [];
+    for (const other of nearby) {
+      agents.push(other.agent);
     }
-    return result;
+    return agents;
+  }
+
+  // Living units of the OTHER team within `radius` (candidates for sight checks).
+  opponentsNear(unit, radius) {
+    return this.hash.queryRadius(unit.agent.position, radius)
+      .filter((other) => other.team !== unit.team && other.alive);
   }
 
   // Formation anchor for following allies: the Commander, or the guard point
@@ -165,21 +185,17 @@ export class GameWorld {
   }
 
   // ---- Path requests -----------------------------------------------------------
-  // Brains ask for paths through these two functions and get the answer in a
-  // callback. For now we answer immediately; in P6 a path service queues the
-  // requests and answers a fixed number per frame (time slicing), without any
-  // change to the brains.
+  // Brains ask for paths through these two functions and get the answer later in
+  // a callback: the path service queues requests and answers a few per step
+  // (time slicing, see pathfinding/pathService.js).
 
-  requestPath(unit, goalTile, onReady) {
-    const result = findPath(this.grid, unit.agent.currentTile(), goalTile);
-    this.stats.lastAstar = result;
-    onReady(result.path);
+  requestPath(unit, goalTile, onReady, channel = 'path') {
+    this.paths.requestPath(unit, goalTile, onReady, channel);
   }
 
-  requestRoute(unit, goalTile, onReady) {
-    const route = hpaFindPath(this.hpaGraph, unit.agent.currentTile(), goalTile, { useCache: true });
-    this.stats.lastHpa = route;
-    onReady(route.found ? route : null);
+  // options: { crossing: true, groupSize } plans the river crossing in time.
+  requestRoute(unit, goalTile, onReady, options = {}) {
+    this.paths.requestRoute(unit, goalTile, onReady, options);
   }
 
   // ---- Player commands -----------------------------------------------------------
@@ -217,8 +233,10 @@ export class GameWorld {
     }
     this.time += dt;
     this.waves.update(dt, this);
+    this.rebuildSpatialHash();
     this.updateThinkTimers(dt);
 
+    // AI decisions
     for (const unit of this.units) {
       if (unit.alive && unit.brain !== null) {
         unit.brain.update(dt);
@@ -226,15 +244,127 @@ export class GameWorld {
     }
     this.updateCommander(dt);
 
+    // Path service: answer a few queued requests (time slicing)
+    this.paths.update(this.time);
+
+    // Steering + physics
     for (const unit of this.units) {
       if (unit.alive) {
         moveUnit(unit, this, dt);
         tickCooldown(unit, dt);
       }
     }
+    this.updateLocalReplanning(dt);
+    this.updateBridgeCrossings();
 
+    this.stats.neighbourChecks = this.hash.checksThisStep;
     this.handleDeaths();
     this.checkEndConditions();
+  }
+
+  rebuildSpatialHash() {
+    this.hash.clear();
+    for (const unit of this.units) {
+      if (unit.alive) {
+        this.hash.insert(unit, unit.agent.position);
+      }
+    }
+  }
+
+  // ---- Local replanning -------------------------------------------------------------
+  // A unit that makes no progress towards its current waypoint for
+  // REPLAN.noProgressSeconds (pushed behind a rock by the crowd, blocked by other
+  // units...) replans ONLY the next 2 waypoints with a short A* and splices the
+  // detour into its path. The rest of the path is kept: replanning the whole
+  // path would cost much more and usually give the same result.
+  updateLocalReplanning(dt) {
+    for (const unit of this.units) {
+      if (unit.replanFlashTimer > 0) {
+        unit.replanFlashTimer -= dt;
+      }
+      const order = unit.order;
+      const isFollowing = (order.type === 'path' || order.type === 'route') && !order.follower.finished;
+      if (!unit.alive || !isFollowing || unit.isWaiting) {
+        unit.progress = null;
+        continue;
+      }
+      const follower = order.follower;
+      const distanceToWaypoint = distance(unit.agent.position, follower.path[follower.index]);
+      const progress = unit.progress;
+      // New order or new waypoint: start measuring again.
+      if (progress === null || progress.order !== order || progress.index !== follower.index) {
+        unit.progress = { order: order, index: follower.index, best: distanceToWaypoint, stuckTime: 0 };
+        continue;
+      }
+      if (distanceToWaypoint < progress.best - REPLAN.minProgress) {
+        progress.best = distanceToWaypoint;
+        progress.stuckTime = 0;
+      } else {
+        progress.stuckTime += dt;
+      }
+      if (progress.stuckTime >= REPLAN.noProgressSeconds && !unit.waitingForReplan) {
+        progress.stuckTime = 0;
+        this.replanLocally(unit, order);
+      }
+    }
+  }
+
+  replanLocally(unit, order) {
+    const follower = order.follower;
+    const firstIndex = follower.index;
+    const lastIndex = Math.min(firstIndex + 1, follower.path.length - 1); // the next 2 waypoints
+    const goalPoint = follower.path[lastIndex];
+    const goalTile = { x: pixelToTile(goalPoint.x), y: pixelToTile(goalPoint.y) };
+    unit.waitingForReplan = true;
+    this.requestPath(unit, goalTile, (tilePath) => {
+      unit.waitingForReplan = false;
+      if (tilePath === null || !unit.alive || unit.order !== order) {
+        return; // the plan changed in the meantime
+      }
+      const detour = tilePathToPixels(smoothPath(this.grid, tilePath, unit.agent.radius)).slice(1);
+      if (detour.length === 0) {
+        return; // already standing on the goal tile
+      }
+      // Keep the exact original goal point at the end of the detour.
+      detour[detour.length - 1] = goalPoint;
+      follower.path.splice(firstIndex, lastIndex - firstIndex + 1, ...detour);
+      follower.index = firstIndex;
+      this.stats.localReplans += 1;
+      unit.replanFlashTimer = 1;
+    }, 'replan');
+  }
+
+  // ---- Bridge reservations bookkeeping -----------------------------------------------
+  // A reservation is released when the unit has crossed (near the far end), when
+  // its plan changed (a different order), or when it died.
+  updateBridgeCrossings() {
+    for (const unit of this.units) {
+      const order = unit.order;
+      if (unit.alive && order.crossing && unit.activeCrossing === null) {
+        unit.activeCrossing = { crossing: order.crossing, order: order };
+      }
+      const active = unit.activeCrossing;
+      if (active === null) {
+        continue;
+      }
+      const crossed = distance(unit.agent.position, active.crossing.exitPoint) < RESERVATIONS.releaseRadius;
+      if (!unit.alive || unit.order !== active.order || crossed) {
+        this.reservations.release(active.crossing.reservation);
+        unit.activeCrossing = null;
+      }
+    }
+    this.reservations.expire(this.time, RESERVATIONS.expireAfter);
+  }
+
+  // ---- Stress test -------------------------------------------------------------------
+  // Spawns PERFORMANCE.stressTestEnemies extra enemies in squads at the right edge.
+  spawnStressTest() {
+    let remaining = PERFORMANCE.stressTestEnemies;
+    while (remaining > 0) {
+      const size = Math.min(WAVES.maxSquadSize, remaining);
+      this.spawnSquad(size);
+      remaining -= size;
+    }
   }
 
   // Each unit thinks (runs its perception) once per AI.thinkInterval.
@@ -261,7 +391,7 @@ export class GameWorld {
     }
     let nearest = null;
     let nearestDistance = Infinity;
-    for (const enemy of this.enemyUnits()) {
+    for (const enemy of this.opponentsNear(commander, commander.sightRange)) {
       const d = distance(commander.agent.position, enemy.agent.position);
       if (d < nearestDistance && isInReach(commander, enemy.agent.position, enemy.agent.radius)) {
         nearest = enemy;

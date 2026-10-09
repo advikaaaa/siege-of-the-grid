@@ -29,7 +29,7 @@ export const ALLY_TRANSITIONS = {
   GUARD: { ENEMY_SEEN: 'ENGAGE', REJOIN_ORDERED: 'FOLLOW' },
 };
 
-// world must provide: grid, guardMode, base, commander, enemyUnits(),
+// world must provide: grid, guardMode, base, commander, opponentsNear(unit, radius),
 // commanderAnchor(), guardAnchor(), allySlotOffset(unit), requestPath(...).
 export function createAllyBrain(unit, world) {
   function isTargetGone() {
@@ -50,7 +50,7 @@ export function createAllyBrain(unit, world) {
   }
 
   function lookForEnemy() {
-    return findVisibleEnemy(unit, world.enemyUnits(), world.grid, unit.sightRange);
+    return findVisibleEnemy(unit, world.opponentsNear(unit, unit.sightRange), world.grid, unit.sightRange);
   }
 
   // HYSTERESIS: only START a chase if the enemy is well inside the leash

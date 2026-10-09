@@ -9,6 +9,8 @@
  *   slot   - keep a formation slot relative to an anchor (leader or guard point)
  *   arrive - go to a point and stop (chasing a target, flanking, sieging)
  * Any order may also carry evadeFrom (a unit to run away from while moving).
+ * A route that crosses a bridge may carry a HOLD: wait at the bridge entrance until
+ * the reserved time slot starts (time-aware planning, pathfinding/reservations.js).
  *
  * Steering mode blends, in priority order:
  *   obstacle avoidance > separation > evade (if any) > the order's goal behavior
@@ -18,7 +20,7 @@
  * Pure logic: no DOM or canvas.
  */
 
-import { STEERING } from '../config.js';
+import { STEERING, RESERVATIONS } from '../config.js';
 import { vec, distance } from '../core/vector.js';
 import {
   followPath, arrive, evade, keepFormationSlot, formationSlotPosition,
@@ -53,9 +55,23 @@ export function pathOrder(follower) {
 }
 
 // An HPA* route: only the first segment is refined now, the rest on demand.
+// If the route was planned through a reserved bridge slot, the order also holds
+// the unit at the bridge entrance until that slot starts.
 export function routeOrder(route, grid, clearance) {
   const firstTiles = refineNextSegment(route);
-  return { type: 'route', route: route, follower: followerFromTiles(grid, firstTiles, clearance), evadeFrom: null };
+  const order = {
+    type: 'route',
+    route: route,
+    follower: followerFromTiles(grid, firstTiles, clearance),
+    evadeFrom: null,
+    crossing: null,
+    hold: null,
+  };
+  if (route.crossing !== undefined) {
+    order.crossing = route.crossing;
+    order.hold = { point: route.crossing.holdPoint, until: route.crossing.holdUntil };
+  }
+  return order;
 }
 
 // getAnchor() returns { position, heading } of the formation anchor (usually the
@@ -84,17 +100,19 @@ export function slotPosition(order) {
 
 // ---- Moving one step ------------------------------------------------------------
 
-// world needs: grid, movementMode ('steering' | 'kinematic'), neighboursOf(unit)
+// world needs: grid, time, movementMode ('steering' | 'kinematic'), neighboursOf(unit)
 // (a list of nearby AGENTS for separation).
 export function moveUnit(unit, world, dt) {
   const order = unit.order;
   if (order.type === 'route') {
     extendRouteIfNeeded(unit, order, world.grid);
   }
+  unit.isWaiting = isHoldingAtBridge(unit, order, world.time);
 
   if (world.movementMode === 'kinematic') {
     unit.agent.debugForces = [];
-    unit.agent.applyKinematicVelocity(kinematicVelocity(unit, order, dt), dt, world.grid);
+    const velocity = unit.isWaiting ? vec(0, 0) : kinematicVelocity(unit, order, dt);
+    unit.agent.applyKinematicVelocity(velocity, dt, world.grid);
   } else {
     const forces = steeringForces(unit, order, world);
     unit.agent.debugForces = forces;
@@ -104,6 +122,19 @@ export function moveUnit(unit, world, dt) {
   if (order.type === 'path' || order.type === 'route') {
     updateFinished(unit.agent, order.follower);
   }
+}
+
+// True while the unit stands at its bridge entrance before its reserved slot.
+// Once the slot has started the hold is removed for good.
+function isHoldingAtBridge(unit, order, now) {
+  if (order.hold === undefined || order.hold === null) {
+    return false;
+  }
+  if (now >= order.hold.until) {
+    order.hold = null;
+    return false;
+  }
+  return distance(unit.agent.position, order.hold.point) < RESERVATIONS.holdRadius;
 }
 
 // LAZY REFINEMENT in action: when the unit is heading for the last known
@@ -138,13 +169,22 @@ function steeringForces(unit, order, world) {
   const weights = STEERING.weights;
   const forces = [
     { name: 'obstacleAvoidance', force: obstacleAvoidance(agent, world.grid), weight: weights.obstacleAvoidance },
-    { name: 'separation', force: separation(agent, world.neighboursOf(unit)), weight: weights.separation },
+    {
+      name: 'separation',
+      force: separation(agent, world.neighboursOf(unit)),
+      weight: weights.separation,
+      maxShare: STEERING.separationMaxShare,
+    },
   ];
   if (order.evadeFrom !== null && order.evadeFrom.alive) {
     const threat = order.evadeFrom.agent;
     forces.push({ name: 'evade', force: evade(agent, threat.position, threat.velocity, unit.sightRange), weight: weights.evade });
   }
-  forces.push(goalForce(unit, order));
+  if (unit.isWaiting) {
+    forces.push({ name: 'arrive', force: brake(agent), weight: weights.arrive });
+  } else {
+    forces.push(goalForce(unit, order));
+  }
   return forces;
 }
 

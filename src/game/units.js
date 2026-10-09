@@ -49,6 +49,12 @@ export function createUnit(id, kind, position) {
     flankPoint: null,
 
     rawPath: null,       // Commander: last raw A* tile path (overlay 1, orange)
+
+    isWaiting: false,         // holding at a bridge entrance for its reserved slot
+    activeCrossing: null,     // { crossing, order } while a bridge reservation is held
+    progress: null,           // local replanning: progress towards the current waypoint
+    waitingForReplan: false,
+    replanFlashTimer: 0,      // > 0 right after a local replan (drawn by overlay 1)
   };
 }
 
