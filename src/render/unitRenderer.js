@@ -64,3 +64,27 @@ export function drawWanderCircle(ctx, agent) {
   strokeCircle(ctx, circle.centre, STEERING.wanderRadius, 'rgba(255, 255, 255, 0.5)');
   fillCircle(ctx, circle.target, 2.5, FORCE_COLORS.wander);
 }
+
+// A small HP bar above a unit: green -> yellow -> red as HP drops.
+export function drawHealthBar(ctx, centre, width, offsetY, fraction) {
+  const clamped = Math.max(0, Math.min(1, fraction));
+  const left = centre.x - width / 2;
+  const top = centre.y - offsetY;
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+  ctx.fillRect(left - 1, top - 1, width + 2, 4);
+  ctx.fillStyle = clamped > 0.6 ? '#4caf50' : clamped > 0.3 ? '#ffc107' : '#f44336';
+  ctx.fillRect(left, top, width * clamped, 2);
+}
+
+// A game unit: body, a white ring for squad leaders, and an HP bar.
+export function drawUnit(ctx, unit) {
+  if (!unit.alive) {
+    return;
+  }
+  const agent = unit.agent;
+  drawAgent(ctx, agent, unit.color);
+  if (unit.squad !== null && unit.squad.leader === unit) {
+    strokeCircle(ctx, agent.position, agent.radius + 2, '#ffffff');
+  }
+  drawHealthBar(ctx, agent.position, 12, agent.radius + 5, unit.hp / unit.maxHp);
+}

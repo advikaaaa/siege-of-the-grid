@@ -98,6 +98,9 @@ export const STEERING = {
   },
 };
 
+// Where the Commander and the allies appear, relative to the base (tiles).
+export const PLAYER_SPAWN_OFFSET_X = 2;
+
 // ---- Hierarchical pathfinding (HPA*) ---------------------------------------------
 export const HPA = {
   // 16 x 16 tile clusters: 96 / 16 = 6 columns, 64 / 16 = 4 rows = 24 clusters.
@@ -108,6 +111,68 @@ export const HPA = {
   // After full refinement, look this many tiles ahead for cheaper straight
   // shortcuts (see shortcutTilePath in smoothing.js).
   shortcutLookahead: 24,
+};
+
+// ---- Units and combat (distances in px, times in s) ---------------------------------
+// attackRange is the reach BEYOND touching: a hit lands when
+//   distance(centres) <= attacker.radius + target.radius + attackRange
+// HP and damage never change with difficulty: "smarter, not stronger".
+export const UNIT_STATS = {
+  commander: { maxHp: 400, damage: 25, attackRange: 8, attackCooldown: 0.5, sightRange: 96, maxSpeed: 75, radius: 5 },
+  ally: { maxHp: 140, damage: 10, attackRange: 8, attackCooldown: 0.8, sightRange: 84, maxSpeed: 68, radius: 4 },
+  enemy: { maxHp: 80, damage: 5, attackRange: 8, attackCooldown: 0.9, sightRange: 84, maxSpeed: 52, radius: 4 },
+};
+
+export const COMBAT = {
+  baseMaxHp: 2000,
+  commanderRespawnSeconds: 5,
+  retreatBelowHpFraction: 0.3,   // ATTACK -> RETREAT when HP < 30%
+  regroupAboveHpFraction: 0.7,   // RETREAT -> REGROUP when HP > 70%
+  retreatRegenPerSecond: 10,     // HP regained per second while retreating
+  siegeDistance: 24,             // an enemy this close to the base starts the siege
+};
+
+// ---- AI decision making ----------------------------------------------------------
+export const AI = {
+  // Brains look around (perception) only every thinkInterval seconds, not every
+  // 1/60 s step: line-of-sight checks are the expensive part, and real players
+  // do not react within 16 ms either.
+  thinkInterval: 0.2,
+  // Delay between seeing a target and acting on it (DECIDE state).
+  // P7 makes this depend on the difficulty.
+  reactionTime: 0.5,
+  // Uncertain decisions: weighted random choice when an enemy sees a target.
+  decisionWeights: { ATTACK: 0.7, REPOSITION: 0.2, RETREAT: 0.1 },
+  flankDistance: 48,          // REPOSITION: how far to the side of the target to go
+  flankTimeout: 3,            // give up flanking after this long and just attack
+  loseTargetDistance: 140,    // a chased target further than this is "lost"
+  catchUpDistance: 60,        // a formation member further than this from its slot paths to it
+  catchUpReplanSeconds: 1.5,  // how often a catching-up unit asks for a new path
+  allyLeashDistance: 160,     // allies stop chasing this far from the Commander
+  engageWithinLeashFraction: 0.75, // ...and only start chasing enemies within 75% of it
+  guardRadius: 120,           // guarding allies engage enemies this close to the guard point
+  regroupDistance: 36,        // REGROUP is done this close to the squad leader
+  regroupTimeout: 8,
+  minRetreatSeconds: 3,       // a retreat lasts at least this long, even at high HP
+};
+
+// ---- Formations -------------------------------------------------------------------
+export const FORMATION = {
+  spacing: 16,            // px between neighbouring slots
+  enemySquadShape: 'V',
+};
+
+// ---- Waves --------------------------------------------------------------------------
+// Wave n has firstWaveSize + (n - 1) * sizeIncrease enemies: 4, 6, 8, ... 22.
+export const WAVES = {
+  total: 10,
+  firstWaveSize: 4,
+  sizeIncrease: 2,
+  maxSquadSize: 6,
+  firstWaveDelay: 5,
+  delayBetweenWaves: 10,  // after a wave is cleared
+  delayBetweenSquads: 2.5,
+  maxWaveSeconds: 120,    // start the next wave anyway after this long
 };
 
 // ---- AI Lab --------------------------------------------------------------------

@@ -19,7 +19,7 @@
 
 import { STEERING } from '../config.js';
 import {
-  vec, add, subtract, scale, length, normalize, distance, fromAngle, rotate,
+  vec, add, subtract, scale, length, normalize, distance, fromAngle, rotate, dot,
 } from '../core/vector.js';
 import { isWalkable, pixelToTile } from '../world/grid.js';
 
@@ -183,19 +183,37 @@ export function castFeeler(grid, feeler) {
 }
 
 // OBSTACLE AVOIDANCE: for each feeler that hits a wall, push along the wall's
-// normal. The closer the hit, the stronger the push:
-//   strength = avoidanceForce * (1 - hitDistance / feelerLength)
-// So a wall at the tip of the feeler barely matters, a wall right in front of
-// the agent pushes at full strength.
+// normal. The push is stronger when the wall is closer AND when we are moving
+// more directly into it:
+//   closeness = 1 - hitDistance / feelerLength              (1 = wall right here)
+//   headOn    = max(0, -dot(wallNormal, normalize(velocity))) (1 = straight at it,
+//                                                              0 = parallel or away)
+//   strength  = avoidanceForce * closeness * headOn
+//
+// WHY headOn (both found in headless test runs of the full game):
+//  - A unit walking ALONG a wall (smoothed paths often do) keeps touching it with
+//    a side feeler. Without headOn it was pushed sideways forever; because
+//    avoidance has the highest priority, that push used up the whole force
+//    budget and left nothing for path following, so the unit froze.
+//  - We use the VELOCITY, not the heading: a unit that has stopped still faces
+//    its old direction. If that points at a wall, a heading-based push would pin
+//    it there forever (it can never start moving to turn away). A unit that is
+//    not moving cannot collide, so it gets no avoidance push at all.
 export function obstacleAvoidance(agent, grid) {
   let total = vec(0, 0);
+  if (length(agent.velocity) === 0) {
+    return total;
+  }
+  const movingDirection = normalize(agent.velocity);
   for (const feeler of computeFeelers(agent)) {
     const hit = castFeeler(grid, feeler);
     if (hit === null) {
       continue;
     }
     const feelerLength = distance(feeler.start, feeler.end);
-    const strength = STEERING.avoidanceForce * (1 - hit.distance / feelerLength);
+    const closeness = 1 - hit.distance / feelerLength;
+    const headOn = Math.max(0, -dot(hit.normal, movingDirection));
+    const strength = STEERING.avoidanceForce * closeness * headOn;
     total = add(total, scale(hit.normal, strength));
   }
   return total;

@@ -3,8 +3,9 @@
  * Course concept: makes the AI's internal data visible for the demo.
  *   1 - paths: raw A* path (orange, through every tile centre) vs smoothed path (cyan)
  *   2 - HPA*: cluster grid, entrances, abstract path
- *   (3-7 are added in later phases: steering vectors, FSM states,
- *    bridge reservations, sight radii, spatial hash cells.)
+ *   4 - FSM state labels above units
+ *   (3, 5, 6, 7 are added in later phases: steering vectors, bridge
+ *    reservations, sight radii, spatial hash cells.)
  * Used by: scenes/gameScene.js, scenes/lab/pathCompare.js.
  */
 
@@ -26,18 +27,26 @@ function drawPolyline(ctx, points, color, width) {
   }
 }
 
-// Overlay 1. rawTiles and smoothedTiles are tile paths ({ x, y } arrays).
-export function drawPathOverlay(ctx, rawTiles, smoothedTiles) {
+// Overlay 1, raw part: a tile path straight from A* (orange dots, every tile).
+export function drawRawPath(ctx, rawTiles) {
   const raw = tilePathToPixels(rawTiles);
   drawPolyline(ctx, raw, RAW_PATH_COLOR, 1);
   for (const point of raw) {
     fillCircle(ctx, point, 1.5, RAW_PATH_COLOR);
   }
+}
 
-  const smoothed = tilePathToPixels(smoothedTiles);
-  drawPolyline(ctx, smoothed, SMOOTH_PATH_COLOR, 2);
-  for (const point of smoothed) {
-    fillCircle(ctx, point, 3, SMOOTH_PATH_COLOR);
+// Overlay 1, smoothed part: the waypoints a unit actually follows (cyan), from
+// its current waypoint onwards. For HPA* routes this line GROWS while the unit
+// walks: that is lazy refinement adding one segment at a time.
+export function drawFollowerPath(ctx, follower, position) {
+  const points = [position];
+  for (let i = follower.index; i < follower.path.length; i++) {
+    points.push(follower.path[i]);
+  }
+  drawPolyline(ctx, points, SMOOTH_PATH_COLOR, 1.5);
+  for (let i = 1; i < points.length; i++) {
+    fillCircle(ctx, points[i], 2, SMOOTH_PATH_COLOR);
   }
 }
 
@@ -86,4 +95,23 @@ export function drawGoalMarker(ctx, point, color) {
   const size = 4;
   drawLine(ctx, { x: point.x - size, y: point.y - size }, { x: point.x + size, y: point.y + size }, color, 2);
   drawLine(ctx, { x: point.x - size, y: point.y + size }, { x: point.x + size, y: point.y - size }, color, 2);
+}
+
+// Overlay 4: each unit's current FSM state as a small label above it.
+export function drawStateLabels(ctx, units) {
+  ctx.font = '9px sans-serif';
+  ctx.textAlign = 'center';
+  for (const unit of units) {
+    if (!unit.alive || unit.brain === null) {
+      continue;
+    }
+    const x = unit.agent.position.x;
+    const y = unit.agent.position.y - unit.agent.radius - 8;
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+    const width = ctx.measureText(unit.brain.current).width + 4;
+    ctx.fillRect(x - width / 2, y - 8, width, 10);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText(unit.brain.current, x, y);
+  }
+  ctx.textAlign = 'left';
 }

@@ -47,7 +47,7 @@ export function kinematicFlee(agent, threat, panicRadius) {
 // Kinematic path following: the same waypoint rule as steering followPath
 // (advance once within waypointRadius), but each waypoint is approached with
 // kinematicSeek: full speed, instant turns, exact stop on the final point.
-// follower = { path: [points in pixels], index } (see movement/pathMovement.js).
+// follower = { path: [points in pixels], index } (see movement/unitMovement.js).
 export function kinematicFollowPath(agent, follower, dt) {
   const lastIndex = follower.path.length - 1;
   while (follower.index < lastIndex &&
