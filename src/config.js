@@ -80,6 +80,8 @@ export const STEERING = {
 
   // path following: a waypoint counts as reached within this distance (px)
   waypointRadius: 8,
+  // the whole path counts as finished within this distance of the last point (px)
+  arrivalTolerance: 3,
 
   // Blending weights. Order matters too: see combinePrioritized() in steering.js.
   weights: {

@@ -15,7 +15,8 @@
  * Pure logic: no DOM or canvas.
  */
 
-import { vec, subtract, scale, length, normalize, fromAngle } from '../core/vector.js';
+import { STEERING } from '../config.js';
+import { vec, subtract, scale, length, normalize, fromAngle, distance } from '../core/vector.js';
 
 // Move straight at the target at full speed:
 //     v = normalize(target - position) * maxSpeed
@@ -41,6 +42,19 @@ export function kinematicFlee(agent, threat, panicRadius) {
     return vec(0, 0);
   }
   return scale(normalize(away), agent.maxSpeed);
+}
+
+// Kinematic path following: the same waypoint rule as steering followPath
+// (advance once within waypointRadius), but each waypoint is approached with
+// kinematicSeek: full speed, instant turns, exact stop on the final point.
+// follower = { path: [points in pixels], index } (see movement/pathMovement.js).
+export function kinematicFollowPath(agent, follower, dt) {
+  const lastIndex = follower.path.length - 1;
+  while (follower.index < lastIndex &&
+         distance(agent.position, follower.path[follower.index]) < STEERING.waypointRadius) {
+    follower.index += 1;
+  }
+  return kinematicSeek(agent, follower.path[follower.index], dt);
 }
 
 // Kinematic wander: turn the heading by a small random amount, then move forward
