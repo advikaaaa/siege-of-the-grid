@@ -1,0 +1,41 @@
+/*
+  style.css - page layout and canvas scaling.
+  Course concept: none; presentation only.
+  Used by: index.html.
+
+  The canvas always draws at 1152x768 pixels internally (96x64 tiles of 12px).
+  CSS only stretches that picture to fit the window. Game logic never sees the
+  CSS size, so the simulation is identical on every screen. src/core/input.js
+  converts mouse positions from CSS pixels back to canvas pixels.
+*/
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: #15181d;
+  color: #e8e8e8;
+  font-family: system-ui, sans-serif;
+  overflow: hidden;
+}
+
+#game-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}
+
+#game-canvas {
+  /*
+    The canvas is 3:2 (1152 / 768 = 1.5). It may be as wide as the window,
+    but never wider than 1.5 x the window height, otherwise it would overflow
+    vertically. height: auto keeps the 3:2 aspect ratio.
+  */
+  width: min(100vw, calc(100vh * 1.5));
+  height: auto;
+  display: block;
+  /* Keep tile edges crisp when scaled instead of blurring them. */
+  image-rendering: pixelated;
+  cursor: crosshair;
+}

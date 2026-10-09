@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<!--
+  index.html - the single page of the game.
+  Course concept: none directly; it hosts the canvas that every concept is drawn on.
+  Uses: style.css (layout and scaling) and src/main.js (the entry point of the game).
+
+  The script is loaded with type="module" so we can use ES module `import`/`export`.
+  Browsers refuse to load modules over file://, so open this page through a local
+  static server (for example `python -m http.server`), never by double-clicking it.
+-->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Siege of the Grid</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main id="game-container">
+    <!-- The real drawing size (1152x768) is set in src/main.js from src/config.js. -->
+    <canvas id="game-canvas" width="1152" height="768"></canvas>
+  </main>
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>

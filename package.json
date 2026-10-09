@@ -1,0 +1,10 @@
+{
+  "name": "siege-of-the-grid",
+  "version": "0.1.0",
+  "description": "Top-down 2D defense game demonstrating game AI: movement, steering, A*, HPA*, time-aware planning and decision making.",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/"
+  }
+}
