@@ -4,8 +4,8 @@
  * choices) while keeping every demo REPRODUCIBLE. Math.random() cannot be seeded,
  * so two runs would differ; with our own generator, the same seed gives exactly
  * the same map and the same AI dice rolls every time.
- * Used by: world/mapGen.js, scenes/gameScene.js, and later movement (wander),
- * ai/decision.js, game/waves.js, the AI Lab benchmark.
+ * Used by: game/gameWorld.js (the game's single RNG), scenes/menuScene.js, the AI
+ * Lab and most tests.
  *
  * Algorithm: Linear Congruential Generator (LCG), constants from "Numerical Recipes":
  *

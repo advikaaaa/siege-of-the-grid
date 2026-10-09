@@ -4,7 +4,8 @@
  * chokepoints (3 bridges over the river) are what make pathfinding, HPA* and
  * bridge reservations interesting. The flood fill guarantees that every walkable
  * tile can reach every other one, so A* never fails because of a sealed-off pocket.
- * Used by: scenes/gameScene.js (and later the AI Lab and tests).
+ * Used by: game/gameWorld.js, scenes/aiLabScene.js, scenes/menuScene.js,
+ * tests/hpa.test.js, tests/mapGen.test.js, tests/reservations.test.js.
  *
  * Pure logic: no DOM or canvas.
  *
@@ -208,7 +209,7 @@ function clamp(value, min, max) {
 // diagonal step is only legal when both orthogonal neighbours are walkable.
 // That means any diagonal move can be replaced by two straight moves, so
 // "connected with 4 directions" is exactly "connected for our units".
-export function floodFill(grid, startX, startY) {
+function floodFill(grid, startX, startY) {
   const reached = new Uint8Array(grid.width * grid.height);
   if (!isWalkable(grid, startX, startY)) {
     return reached;

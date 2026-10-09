@@ -4,8 +4,8 @@
  * each behavior returns a FORCE that nudges the velocity a little each step.
  * agent.js integrates it (a = F/m, v += a dt, p += v dt), which gives smooth
  * acceleration, curved turns and natural slowing down.
- * Used by: scenes/aiLabScene.js (P2), unit movement in later phases,
- * render/unitRenderer.js (feelers and wander circle for debug drawing).
+ * Used by: ai/formationKeeping.js, movement/unitMovement.js, render/unitRenderer.js,
+ * scenes/lab/behaviorPlayground.js, tests/steering.test.js.
  *
  * The core idea of most behaviors:
  *     desiredVelocity = where I would like to be going, at what speed

@@ -2,7 +2,7 @@
  * combat.js - simple melee combat: reach check, damage, cooldown.
  * Course concept: gives the AI something to decide about. There are no
  * projectiles: a hit lands when the target is within reach and the cooldown is over.
- * Used by: ai/enemyBrain.js, ai/allyBrain.js, game/gameWorld.js (Commander).
+ * Used by: ai/allyBrain.js, ai/enemyBrain.js, game/gameWorld.js.
  *
  * Pure logic: no DOM or canvas.
  */

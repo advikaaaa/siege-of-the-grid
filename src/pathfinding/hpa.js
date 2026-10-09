@@ -2,8 +2,9 @@
  * hpa.js - Hierarchical Path-Finding A* (HPA*, Botea, Mueller & Schaeffer 2004).
  * Course concept: HIERARCHICAL PATHFINDING. Instead of searching thousands of
  * tiles, we search a small ABSTRACT graph first, then fill in the tile details.
- * Used by: scenes/gameScene.js (stats + overlay 2), scenes/lab/pathCompare.js,
- * pathfinding/benchmark.js, render/overlays.js, enemy squads (P5/P6), tests.
+ * Used by: game/gameWorld.js, movement/unitMovement.js, pathfinding/benchmark.js,
+ * pathfinding/pathService.js, render/overlays.js, scenes/aiLabScene.js,
+ * scenes/lab/pathCompare.js, tests/hpa.test.js, tests/reservations.test.js.
  *
  * Pure logic: no DOM or canvas.
  *
@@ -89,7 +90,7 @@ export function buildAbstractGraph(grid, clusterSize = HPA.clusterSize, longEntr
   return graph;
 }
 
-export function clusterIndexOf(graph, x, y) {
+function clusterIndexOf(graph, x, y) {
   const clusterX = Math.floor(x / graph.clusterSize);
   const clusterY = Math.floor(y / graph.clusterSize);
   return clusterY * graph.clustersX + clusterX;

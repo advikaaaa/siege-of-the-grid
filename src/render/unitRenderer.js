@@ -2,7 +2,8 @@
  * unitRenderer.js - draws agents and their steering debug information.
  * Course concept: makes steering visible - velocity, each behavior's force in its
  * own colour, obstacle-avoidance feelers and the wander circle.
- * Used by: scenes/aiLabScene.js (P2); the game scene and overlay 3 in later phases.
+ * Used by: render/overlays.js, scenes/gameScene.js,
+ * scenes/lab/behaviorPlayground.js.
  */
 
 import { STEERING } from '../config.js';
@@ -23,7 +24,7 @@ export const FORCE_COLORS = {
   followPath: '#4dd2ff',
   formation: '#b5e48c',
 };
-export const VELOCITY_COLOR = '#ffffff';
+const VELOCITY_COLOR = '#ffffff';
 
 // Forces are large numbers (hundreds), velocities are tens: draw them at
 // different scales so both fit on screen.

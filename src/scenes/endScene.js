@@ -3,7 +3,7 @@
  * Course concept: none directly; it closes the game loop (win: survive 10 waves,
  * lose: base HP reaches 0) and offers to replay the SAME seed, which replays the
  * same map and the same enemy decisions as long as you play the same way.
- * Used by: main.js (registered as 'end'), entered from scenes/gameScene.js.
+ * Used by: main.js.
  *
  * The last frame of the game stays visible, dimmed, behind the HTML panel.
  */

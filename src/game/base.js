@@ -2,7 +2,7 @@
  * base.js - the player's base: HP, its rectangle, and useful points around it.
  * Course concept: the enemies' main GOAL. Their goal chain is
  * "attack the base -> fight defenders in the way -> retreat when badly hurt".
- * Used by: game/gameWorld.js, ai/enemyBrain.js, ai/allyBrain.js, render.
+ * Used by: ai/enemyBrain.js, game/gameWorld.js.
  *
  * Pure logic: no DOM or canvas.
  */

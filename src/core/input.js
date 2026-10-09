@@ -2,7 +2,7 @@
  * input.js - keyboard and mouse state, converted into game coordinates.
  * Course concept: none directly; it is how the player commands the Commander
  * (click-to-move) and toggles every AI demo (K, P, F, G, 1-7, H...).
- * Used by: main.js (creates it) and every scene (reads it).
+ * Used by: main.js.
  *
  * WHY we queue events instead of reacting inside the event listener:
  * browser events arrive at random moments, but our simulation runs in fixed

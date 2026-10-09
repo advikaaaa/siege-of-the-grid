@@ -4,7 +4,7 @@
  * the lowest f = g + h. Scanning an array for the minimum costs O(n) each time;
  * a binary heap does push and pop in O(log n), which is what makes A* fast on
  * thousands of tiles.
- * Used by: pathfinding/astar.js (and hpa.js, which reuses astar-style search, in P4).
+ * Used by: pathfinding/astar.js, pathfinding/hpa.js, tests/priorityQueue.test.js.
  *
  * Pure logic: no DOM or canvas.
  *

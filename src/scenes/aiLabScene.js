@@ -4,7 +4,7 @@
  *   Behaviors  - kinematic vs steering, every steering behavior (lab/behaviorPlayground.js)
  *   A* vs HPA* - click two points, compare both paths (lab/pathCompare.js)
  *   Benchmark  - 200 random queries, table + bar chart (lab/benchmarkView.js)
- * Used by: main.js (registered as the 'lab' scene).
+ * Used by: main.js.
  *
  * Each view has the same methods as a scene (enter, exit, update, render), so
  * this file only switches between them and shows/hides the HTML panel.

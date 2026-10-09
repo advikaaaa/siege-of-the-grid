@@ -4,7 +4,7 @@
  * route (HPA*, shared through the route cache); members just keep their slot
  * behind the leader with steering. One path search per squad instead of one per
  * unit is a big saving when many NPCs move.
- * Used by: game/gameWorld.js, ai/enemyBrain.js.
+ * Used by: ai/enemyBrain.js, game/gameWorld.js.
  *
  * Pure logic: no DOM or canvas.
  */

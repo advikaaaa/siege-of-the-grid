@@ -4,7 +4,7 @@
  *     waves -> spatial hash rebuild -> perception timers -> AI decisions (brains)
  *           -> path service (time-sliced) -> movement (kinematic or steering)
  *           -> local replanning + bridge bookkeeping -> combat -> deaths -> win/lose
- * Used by: scenes/gameScene.js (which adds input and rendering).
+ * Used by: scenes/gameScene.js, tests/fsm.test.js.
  *
  * Pure logic: no DOM or canvas, so the whole game can run headless in tests.
  */
@@ -63,7 +63,7 @@ export class GameWorld {
     this.aiSettings = buildAiSettings(app.difficulty ?? 'NORMAL', app.aiMode ?? 'UNCERTAIN');
     this.allyRespawns = []; // [{ slotIndex, timer }] allies waiting to come back
 
-    // Performance helpers (P6).
+    // Performance helpers: spatial hash, bridge reservations, path request queue.
     this.hash = new SpatialHash(PERFORMANCE.hashCellSize, this.grid.width * MAP.tileSize, this.grid.height * MAP.tileSize);
     const bridgeIds = this.map.bridges.map((bridge) => bridge.id);
     this.reservations = new ReservationTable(bridgeIds, RESERVATIONS.bridgeCapacity);

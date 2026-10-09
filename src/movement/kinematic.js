@@ -6,8 +6,8 @@
  *   - Orientation snaps to the direction of motion in one frame.
  * It is simple and exact (the unit always ends precisely on its target), but it
  * looks robotic: no smooth turns, no slowing down, and units do not avoid each other.
- * Used by: scenes/aiLabScene.js (P2); units in later phases when the K toggle
- * selects kinematic mode.
+ * Used by: movement/unitMovement.js, scenes/lab/behaviorPlayground.js,
+ * tests/steering.test.js.
  *
  * Each function returns a VELOCITY (not a force). The caller passes it to
  * agent.applyKinematicVelocity().

@@ -5,7 +5,7 @@
  * leader's right). steering.js rotates the offset by the leader's heading and the
  * member "arrives" at it (keepFormationSlot). Because the offsets are local, the
  * whole formation turns when the leader turns.
- * Used by: game/gameWorld.js (allies, F key), ai/allyBrain.js, ai/enemyBrain.js.
+ * Used by: game/gameWorld.js, game/squads.js, tests/fsm.test.js.
  *
  * Pure logic: no DOM or canvas.
  */

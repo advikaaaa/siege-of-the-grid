@@ -2,7 +2,8 @@
  * mapRenderer.js - draws the tile map and the player base on the canvas.
  * Course concept: none directly; it makes the environment (tile costs,
  * chokepoints) visible so the pathfinding demos make sense.
- * Used by: scenes/gameScene.js (and later the AI Lab).
+ * Used by: scenes/gameScene.js, scenes/lab/behaviorPlayground.js,
+ * scenes/lab/pathCompare.js, scenes/menuScene.js.
  *
  * We redraw every tile every frame (96 x 64 = 6144 small rectangles). That is
  * cheap enough for a modern browser, so we keep it simple and do not cache.
@@ -30,7 +31,7 @@ export function drawMap(ctx, map) {
   }
 }
 
-// The base is only an outline for now; it gets HP and gameplay in P5.
+// The base outline. Its HP bar is drawn by scenes/gameScene.js.
 function drawBase(ctx, base) {
   const size = MAP.tileSize;
   ctx.strokeStyle = '#f2d14b';

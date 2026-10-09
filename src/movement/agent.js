@@ -8,7 +8,7 @@
  *         velocity     = velocity + acceleration * dt, clamped to maxSpeed
  *         position     = position + velocity * dt     (explicit Euler integration)
  *         heading      = angle of velocity
- * Used by: scenes/aiLabScene.js (P2); units in later phases wrap an Agent.
+ * Used by: game/units.js, scenes/lab/behaviorPlayground.js, tests/steering.test.js.
  *
  * Pure logic: no DOM or canvas.
  */

@@ -3,7 +3,7 @@
  * Course concept: supports all of them. Keeping numbers here (instead of scattered
  * through the code) lets us tune behaviour and explain it without hunting for
  * "magic numbers". Later phases add steering weights, unit stats and waves here.
- * Used by: almost every file (main.js, core/loop.js, world/mapGen.js, render/*, scenes/*).
+ * Used by: almost every file (it is the single place for tunable numbers).
  */
 
 // ---- Map size -------------------------------------------------------------

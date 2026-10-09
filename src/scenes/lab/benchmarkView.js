@@ -2,7 +2,7 @@
  * benchmarkView.js - AI Lab view 3: A* vs HPA* benchmark over random queries.
  * Course concept: the cost/benefit of hierarchical pathfinding, measured, plus an
  * on-screen explanation of why HPA* paths are slightly suboptimal.
- * Used by: scenes/aiLabScene.js (the "Benchmark" tab).
+ * Used by: scenes/aiLabScene.js.
  *
  * The numbers come from pathfinding/benchmark.js; this file only shows them as a
  * table (HTML panel) and a bar chart (canvas).

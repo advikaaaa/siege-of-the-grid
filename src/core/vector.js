@@ -2,7 +2,8 @@
  * vector.js - 2D vector math.
  * Course concept: the foundation of NPC movement. Positions, velocities, forces
  * and headings are all 2D vectors, both in kinematic and in steering movement.
- * Used by: movement/* (P2), pathfinding/smoothing.js (P3), ai/* and render/* later.
+ * Used by: movement/*, ai/*, game/*, pathfinding/smoothing.js,
+ * pathfinding/pathService.js, render/unitRenderer.js, the AI Lab and the tests.
  *
  * A vector is a plain object { x, y }.
  * Every function returns a NEW vector and never changes its inputs.
@@ -35,12 +36,6 @@ export function scale(v, s) {
 // |v| = sqrt(x^2 + y^2)   (Pythagoras)
 export function length(v) {
   return Math.sqrt(v.x * v.x + v.y * v.y);
-}
-
-// |v|^2 = x^2 + y^2. Cheaper than length() because it skips the square root;
-// handy when we only need to compare distances.
-export function lengthSquared(v) {
-  return v.x * v.x + v.y * v.y;
 }
 
 // Distance between two points = |b - a|

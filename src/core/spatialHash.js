@@ -4,8 +4,7 @@
  * unit's neighbours. Checking every unit against every other unit costs n^2:
  * 300 units -> 90,000 checks per step. A spatial hash only checks the units in
  * the few cells around you, so the cost grows roughly with n instead of n^2.
- * Used by: game/gameWorld.js (separation, sight, Commander auto-attack),
- * render/overlays.js (overlay 7), tests/spatialHash.test.js.
+ * Used by: game/gameWorld.js, tests/spatialHash.test.js.
  *
  * Pure logic: no DOM or canvas.
  *

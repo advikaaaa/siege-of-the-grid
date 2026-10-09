@@ -3,7 +3,7 @@
  * Course concept: this is where every technique is visible at once. All the
  * simulation lives in game/gameWorld.js; this file only turns keys, clicks and
  * buttons into commands and draws the world, the HUD and the debug overlays.
- * Used by: main.js (registered with the SceneManager as 'game').
+ * Used by: main.js.
  *
  * Controls:
  *   left click - send the Commander to that tile (A* + smoothing + path following)

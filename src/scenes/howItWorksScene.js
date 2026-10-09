@@ -2,7 +2,7 @@
  * howItWorksScene.js - an in-game explanation of every AI concept and its key.
  * Course concept: all of them, in plain words (including why the predictable
  * rule set is exploitable and why more rules would not fix it).
- * Used by: main.js (registered as 'howto'), opened from the main menu.
+ * Used by: main.js.
  *
  * The text itself is HTML (#howto-panel in index.html), so it is easy to edit
  * and read; this scene only shows/hides it over a dark background.

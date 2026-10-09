@@ -13,7 +13,7 @@
  *   - The Commander's requests jump the queue: the player must never wait.
  * It also does the time-aware BRIDGE planning for routes that cross the river
  * (see reservations.js).
- * Used by: game/gameWorld.js (brains reach it through world.requestPath/requestRoute).
+ * Used by: game/gameWorld.js, tests/reservations.test.js, tests/spatialHash.test.js.
  *
  * Pure logic: no DOM or canvas.
  */

@@ -1,9 +1,10 @@
 /*
  * hud.js - the heads-up display: a text panel drawn over the game.
- * Course concept: makes the AI observable (seed, FPS, and in later phases
- * path stats, movement mode, AI mode, difficulty). For a viva demo, seeing the
- * numbers matters as much as seeing the units.
- * Used by: scenes/gameScene.js, scenes/lab/*.
+ * Course concept: makes the AI observable (seed, FPS, path statistics, movement
+ * mode, AI mode, difficulty). For a viva demo, seeing the numbers matters as
+ * much as seeing the units.
+ * Used by: scenes/gameScene.js, scenes/lab/behaviorPlayground.js,
+ * scenes/lab/pathCompare.js.
  */
 
 const LINE_HEIGHT = 14;

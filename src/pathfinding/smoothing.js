@@ -4,8 +4,8 @@
  * paths that zig-zag in 45-degree steps. If a unit can walk in a straight line
  * from waypoint A to waypoint C, waypoint B in between is unnecessary. Removing
  * such waypoints gives fewer, longer, more natural straight segments.
- * Used by: scenes/gameScene.js (P3), pathfinding/hpa.js (shortcutTilePath),
- * pathfinding/pathService.js (P6), render/overlays.js (overlay 1).
+ * Used by: game/gameWorld.js, movement/unitMovement.js, pathfinding/hpa.js,
+ * render/overlays.js, scenes/lab/pathCompare.js, tests/astar.test.js.
  *
  * Pure logic: no DOM or canvas.
  *
@@ -112,7 +112,7 @@ export function smoothPath(grid, tilePath, clearance) {
 // The cheapest-looking straight route between two tiles on 8-directional grids:
 // step diagonally while both dx and dy are non-zero, then straight. Returns null
 // if any step is illegal (blocked tile or corner-cutting).
-export function octileLine(grid, from, to) {
+function octileLine(grid, from, to) {
   const line = [{ x: from.x, y: from.y }];
   let x = from.x;
   let y = from.y;
@@ -168,11 +168,3 @@ function findShortcut(grid, tilePath, startIndex, lookahead) {
   return null;
 }
 
-// Length in pixels of a polyline, e.g. to compare raw vs smoothed paths.
-export function polylineLength(points) {
-  let total = 0;
-  for (let i = 1; i < points.length; i++) {
-    total += length(subtract(points[i], points[i - 1]));
-  }
-  return total;
-}

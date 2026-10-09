@@ -2,7 +2,7 @@
  * sceneManager.js - switches between screens (scenes).
  * Course concept: none directly; it organises the program so each screen
  * (Menu, Game, AI Lab, How It Works, Win/Lose) is its own small object.
- * Used by: main.js (registers scenes) and scenes that switch to other scenes.
+ * Used by: main.js.
  *
  * A scene is any object with these methods:
  *   enter(params)  - called when the scene becomes active

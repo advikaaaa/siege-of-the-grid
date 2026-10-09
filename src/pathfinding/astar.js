@@ -6,8 +6,9 @@
  *     h(n) = heuristic: an estimate of the remaining cost from n to the goal
  *   A* always expands the open node with the lowest f. If h never OVERestimates
  *   (admissible), the first time the goal is expanded its path is optimal.
- * Used by: scenes/gameScene.js (Commander click-to-move), pathfinding/hpa.js (P4),
- * the AI Lab benchmark (P4), pathfinding/pathService.js (P6), tests.
+ * Used by: pathfinding/benchmark.js, pathfinding/hpa.js, pathfinding/pathService.js,
+ * pathfinding/smoothing.js, scenes/lab/pathCompare.js, tests/astar.test.js,
+ * tests/hpa.test.js.
  *
  * Grid rules:
  *   - 8 directions. A straight step has length 1, a diagonal step sqrt(2).
@@ -42,7 +43,7 @@ export function octileDistance(ax, ay, bx, by) {
 }
 
 // May a unit step from (x, y) by (dx, dy)?
-// `isInside(x, y)` optionally restricts the search to a region (HPA* clusters, P4).
+// `isInside(x, y)` optionally restricts the search to a region (HPA* clusters).
 export function canStep(grid, x, y, dx, dy, isInside) {
   const nx = x + dx;
   const ny = y + dy;

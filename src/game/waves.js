@@ -15,12 +15,12 @@
 
 import { WAVES } from '../config.js';
 
-export function waveSize(waveNumber) {
+function waveSize(waveNumber) {
   return WAVES.firstWaveSize + (waveNumber - 1) * WAVES.sizeIncrease;
 }
 
 // 22 -> [6, 6, 6, 4]
-export function splitIntoSquads(enemyCount) {
+function splitIntoSquads(enemyCount) {
   const sizes = [];
   let remaining = enemyCount;
   while (remaining > 0) {

@@ -3,7 +3,7 @@
  * Course concept: the SENSING part of the sense -> think -> act loop. Brains do
  * not get magic knowledge: an enemy only reacts to a defender within its sight
  * range AND with a clear line (no rock or water in between).
- * Used by: ai/enemyBrain.js, ai/allyBrain.js, game/gameWorld.js.
+ * Used by: ai/allyBrain.js, ai/enemyBrain.js, game/base.js, game/combat.js.
  *
  * Pure logic: no DOM or canvas.
  */

@@ -5,7 +5,7 @@
  * plan around a rock wall, so a unit that has fallen far behind (e.g. the leader
  * went round a lake) asks for a real A* path to the leader first, and switches
  * back to slot keeping once it is close again.
- * Used by: ai/enemyBrain.js, ai/allyBrain.js.
+ * Used by: ai/allyBrain.js, ai/enemyBrain.js.
  *
  * Pure logic: no DOM or canvas.
  */

@@ -2,8 +2,8 @@
  * grid.js - the tile grid data structure and basic queries on it.
  * Course concept: the search space for pathfinding. A* sees the map as a graph
  * where every walkable tile is a node and neighbouring tiles are connected.
- * Used by: world/mapGen.js, render/mapRenderer.js, scenes/gameScene.js,
- * scenes/aiLabScene.js, movement/agent.js, movement/steering.js, and later pathfinding/*.
+ * Used by: world/mapGen.js, movement/*, pathfinding/*, ai/*, game/gameWorld.js,
+ * render/mapRenderer.js, the scenes and the tests.
  *
  * Pure logic: no DOM or canvas, so it can be unit-tested in Node.
  *

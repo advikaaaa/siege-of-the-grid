@@ -2,7 +2,7 @@
  * pathCompare.js - AI Lab view 2: click two points, see A* and HPA* side by side.
  * Course concept: hierarchical vs flat pathfinding on the same query. The HPA*
  * clusters, entrances and abstract path are drawn too (same as overlay 2).
- * Used by: scenes/aiLabScene.js (the "A* vs HPA*" tab).
+ * Used by: scenes/aiLabScene.js.
  *
  * Click 1 = start, click 2 = goal (runs both searches), click 3 = new start...
  */

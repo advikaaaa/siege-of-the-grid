@@ -3,7 +3,8 @@
  * Course concept: pathfinding on a WEIGHTED grid. Each tile has a movement cost;
  * A* and HPA* add up these costs, so units prefer grass over forest, and rock and
  * water are impassable.
- * Used by: world/grid.js, world/mapGen.js, render/mapRenderer.js, and pathfinding later.
+ * Used by: world/grid.js, world/mapGen.js, render/mapRenderer.js,
+ * scenes/gameScene.js, the AI Lab and the tests.
  *
  * Tile types are small integers so the whole map fits in one Uint8Array
  * (1 byte per tile, see grid.js).

@@ -15,7 +15,8 @@
  * Steering mode blends, in priority order:
  *   obstacle avoidance > separation > evade (if any) > the order's goal behavior
  * Kinematic mode simply sets the velocity towards the goal (no blending).
- * Used by: game/gameWorld.js, ai/enemyBrain.js, ai/allyBrain.js.
+ * Used by: ai/allyBrain.js, ai/enemyBrain.js, ai/formationKeeping.js,
+ * game/gameWorld.js, game/units.js.
  *
  * Pure logic: no DOM or canvas.
  */
@@ -32,7 +33,7 @@ import { refineNextSegment } from '../pathfinding/hpa.js';
 
 // ---- Followers (path-following memory) -------------------------------------------
 
-export function createFollower(pixelPath) {
+function createFollower(pixelPath) {
   // path[0] is the centre of the tile the unit is standing in. Walking back to it
   // first would look odd, so we start at the second point when there is one.
   const firstIndex = Math.min(1, pixelPath.length - 1);
@@ -93,7 +94,7 @@ export function isOrderFinished(order) {
 }
 
 // World position of a slot order's slot right now.
-export function slotPosition(order) {
+function slotPosition(order) {
   const anchor = order.getAnchor();
   return formationSlotPosition(anchor.position, anchor.heading, order.offset);
 }

@@ -3,7 +3,7 @@
  * Course concept: kinematic vs steering movement, and every basic steering
  * behavior (seek, flee, arrive, pursue, evade, wander) together with obstacle
  * avoidance and separation, combined with weighted priority blending.
- * Used by: scenes/aiLabScene.js (the "Behaviors" tab).
+ * Used by: scenes/aiLabScene.js.
  *
  * The controls are plain HTML (#lab-behaviors in index.html): buttons pick the
  * behavior, sliders change maxSpeed, maxForce and the slowing radius.

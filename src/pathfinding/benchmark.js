@@ -2,7 +2,7 @@
  * benchmark.js - compares A* and HPA* on many random queries on the same map.
  * Course concept: the trade-off of HIERARCHICAL pathfinding - far fewer nodes
  * searched per query, in exchange for precomputation and slightly longer paths.
- * Used by: scenes/lab/benchmarkView.js (AI Lab), tests/hpa.test.js.
+ * Used by: scenes/lab/benchmarkView.js, tests/hpa.test.js.
  *
  * Pure logic: no DOM or canvas.
  *

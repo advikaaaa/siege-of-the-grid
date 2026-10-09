@@ -8,7 +8,8 @@
  *   5 - bridge reservation timeline
  *   6 - sight radii
  *   7 - spatial hash cells
- * Used by: scenes/gameScene.js, scenes/lab/pathCompare.js.
+ * Used by: scenes/gameScene.js, scenes/lab/benchmarkView.js,
+ * scenes/lab/pathCompare.js.
  */
 
 import { MAP } from '../config.js';
@@ -17,8 +18,8 @@ import { clusterBounds } from '../pathfinding/hpa.js';
 import { fillCircle, strokeCircle, drawLine } from './draw.js';
 import { drawSteeringVectors, drawFeelers } from './unitRenderer.js';
 
-export const RAW_PATH_COLOR = '#ff9f1c';
-export const SMOOTH_PATH_COLOR = '#00e5ff';
+const RAW_PATH_COLOR = '#ff9f1c';
+const SMOOTH_PATH_COLOR = '#00e5ff';
 // A* vs HPA* comparison colours (checked for colour-blind separation).
 export const ASTAR_COLOR = '#d95926';
 export const HPA_COLOR = '#3987e5';

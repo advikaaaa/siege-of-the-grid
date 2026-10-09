@@ -7,7 +7,7 @@
  *   exit(fsm)        - runs once when we leave (clean up)
  * The TRANSITION TABLE says, for each state, which event leads to which state:
  *   { ATTACK: { HP_LOW: 'RETREAT', TARGET_LOST: 'MARCH' }, ... }
- * Used by: ai/enemyBrain.js, ai/allyBrain.js, tests/fsm.test.js.
+ * Used by: ai/allyBrain.js, ai/enemyBrain.js, tests/fsm.test.js.
  *
  * WHY an explicit table instead of "if (...) state = 'RETREAT'" scattered in code:
  * the whole behaviour fits on one screen, you can draw it as a diagram, and an

@@ -8,7 +8,7 @@
  *   - repositioning likelihood (how often the dice pick REPOSITION)
  *   - sight range        (how far enemies notice defenders)
  * HP and damage are the same on every difficulty (see UNIT_STATS in config.js).
- * Used by: game/gameWorld.js (builds world.aiSettings), scenes (labels).
+ * Used by: game/gameWorld.js, scenes/gameScene.js.
  *
  * Pure logic: no DOM or canvas.
  */
@@ -42,8 +42,6 @@ export const DIFFICULTIES = {
   },
 };
 
-export const DIFFICULTY_NAMES = ['EASY', 'NORMAL', 'HARD'];
-export const AI_MODES = ['UNCERTAIN', 'PREDICTABLE'];
 
 // Builds the settings object the enemy brain reads (world.aiSettings):
 // {

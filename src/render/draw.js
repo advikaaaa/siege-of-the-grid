@@ -2,7 +2,8 @@
  * draw.js - small canvas drawing helpers (circles, lines, arrows).
  * Course concept: none directly; used to visualise vectors, radii and paths so
  * the AI is visible on screen.
- * Used by: render/unitRenderer.js, scenes/aiLabScene.js, and later render/overlays.js.
+ * Used by: render/overlays.js, render/unitRenderer.js, scenes/gameScene.js,
+ * scenes/lab/behaviorPlayground.js, scenes/lab/pathCompare.js.
  */
 
 export function fillCircle(ctx, centre, radius, color) {

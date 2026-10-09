@@ -13,8 +13,8 @@
  *               bridge with the smallest total.
  *   4. Reserve: [tStart, tStart + crossing time] on the chosen bridge, and release it
  *               when the crossing is done, the plan changes, or the unit dies.
- * Used by: pathfinding/pathService.js (planning), game/gameWorld.js (release),
- * render/overlays.js (overlay 5), tests/reservations.test.js.
+ * Used by: game/gameWorld.js, pathfinding/pathService.js,
+ * tests/reservations.test.js.
  *
  * Pure logic: no DOM or canvas.
  *

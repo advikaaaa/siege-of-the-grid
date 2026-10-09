@@ -5,7 +5,7 @@
  * (ATTACK 70%, REPOSITION 20%, RETREAT 10%) keeps it believable but unpredictable,
  * while the seeded RNG keeps every demo reproducible.
  * It also holds the PREDICTABLE rule set used for the complexity-fallacy demo.
- * Used by: ai/difficulty.js (which the enemy brain's DECIDE state calls), tests/fsm.test.js.
+ * Used by: ai/difficulty.js, tests/fsm.test.js.
  *
  * Pure logic: no DOM or canvas.
  */

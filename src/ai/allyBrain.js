@@ -1,7 +1,7 @@
 /*
  * allyBrain.js - the allied soldiers' decision making, as a finite state machine.
  * Course concept: DECISION MAKING (FSM) for friendly NPCs.
- * Used by: game/gameWorld.js (each of the 8 allies gets one brain).
+ * Used by: game/gameWorld.js, tests/fsm.test.js.
  *
  * STATES:
  *   FOLLOW - keep my formation slot around the Commander (F changes the shape)

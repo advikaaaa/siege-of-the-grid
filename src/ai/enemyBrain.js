@@ -1,7 +1,7 @@
 /*
  * enemyBrain.js - the enemy's decision making, as a finite state machine.
  * Course concept: DECISION MAKING (FSM), CLEAR GOALS and UNCERTAINTY.
- * Used by: game/gameWorld.js (every enemy gets one brain).
+ * Used by: game/gameWorld.js, tests/fsm.test.js.
  *
  * GOAL CHAIN: attack the base -> fight defenders in the way -> retreat when
  * heavily damaged.

@@ -2,7 +2,7 @@
  * menuScene.js - the main menu: Play, AI Lab, How It Works, difficulty and seed.
  * Course concept: difficulty scaling is chosen here ("Enemies get smarter, not
  * stronger"), and the seed that makes every demo reproducible is shown here.
- * Used by: main.js (the first scene).
+ * Used by: main.js.
  *
  * The buttons are HTML (#menu-panel in index.html); the canvas behind them shows
  * the current seed's map, dimmed.

@@ -3,7 +3,7 @@
  * Course concept: the NPC itself. Each unit has a body (Agent: physics and
  * movement), a movement ORDER (what unitMovement.js should do), combat stats,
  * and, for allies and enemies, a BRAIN (a state machine from ai/).
- * Used by: game/gameWorld.js.
+ * Used by: ai/enemyBrain.js, game/gameWorld.js.
  */
 
 import { UNIT_STATS, AI } from '../config.js';
