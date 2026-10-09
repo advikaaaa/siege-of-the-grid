@@ -4,7 +4,8 @@
  * paths that zig-zag in 45-degree steps. If a unit can walk in a straight line
  * from waypoint A to waypoint C, waypoint B in between is unnecessary. Removing
  * such waypoints gives fewer, longer, more natural straight segments.
- * Used by: scenes/gameScene.js (P3), pathfinding/pathService.js (P6), overlay 1.
+ * Used by: scenes/gameScene.js (P3), pathfinding/hpa.js (shortcutTilePath),
+ * pathfinding/pathService.js (P6), render/overlays.js (overlay 1).
  *
  * Pure logic: no DOM or canvas.
  *
@@ -17,6 +18,7 @@
 
 import { vec, add, subtract, scale, length, normalize } from '../core/vector.js';
 import { isWalkable, tileCost, pixelToTile, tileCenterPixel } from '../world/grid.js';
+import { canStep, pathCost } from './astar.js';
 
 // How often (px) we test points along the line. Smaller than a tile, so we cannot
 // "jump over" a corner of a blocked tile.
@@ -94,6 +96,76 @@ export function smoothPath(grid, tilePath, clearance) {
   }
   smoothed.push(tilePath[tilePath.length - 1]);
   return smoothed;
+}
+
+// ---- Tile-level shortcutting (used after HPA* refinement) ---------------------
+//
+// smoothPath() above returns WAYPOINTS for units to walk. HPA* also needs a
+// smoother TILE path, so its cost can be compared with A* fairly. HPA* paths have
+// detours because they must pass through fixed entrance tiles; this pass cuts
+// them out. (The original HPA* paper does the same "path smoothing" step.)
+//
+// For each position i we look up to `lookahead` tiles ahead, furthest first. If
+// the "octile line" from tile i to tile j is legal AND cheaper than the stretch of
+// path it replaces, we use it and continue from j.
+
+// The cheapest-looking straight route between two tiles on 8-directional grids:
+// step diagonally while both dx and dy are non-zero, then straight. Returns null
+// if any step is illegal (blocked tile or corner-cutting).
+export function octileLine(grid, from, to) {
+  const line = [{ x: from.x, y: from.y }];
+  let x = from.x;
+  let y = from.y;
+  while (x !== to.x || y !== to.y) {
+    const stepX = Math.sign(to.x - x);
+    const stepY = Math.sign(to.y - y);
+    if (!canStep(grid, x, y, stepX, stepY, allowEverywhere)) {
+      return null;
+    }
+    x += stepX;
+    y += stepY;
+    line.push({ x: x, y: y });
+  }
+  return line;
+}
+
+function allowEverywhere() {
+  return true;
+}
+
+export function shortcutTilePath(grid, tilePath, lookahead) {
+  const result = [tilePath[0]];
+  let i = 0;
+  while (i < tilePath.length - 1) {
+    const shortcut = findShortcut(grid, tilePath, i, lookahead);
+    if (shortcut === null) {
+      result.push(tilePath[i + 1]);
+      i += 1;
+    } else {
+      // shortcut.line[0] is tile i itself, already in the result.
+      for (let k = 1; k < shortcut.line.length; k++) {
+        result.push(shortcut.line[k]);
+      }
+      i = shortcut.endIndex;
+    }
+  }
+  return result;
+}
+
+function findShortcut(grid, tilePath, startIndex, lookahead) {
+  const furthest = Math.min(tilePath.length - 1, startIndex + lookahead);
+  for (let j = furthest; j > startIndex + 1; j--) {
+    const line = octileLine(grid, tilePath[startIndex], tilePath[j]);
+    if (line === null) {
+      continue;
+    }
+    const oldCost = pathCost(grid, tilePath.slice(startIndex, j + 1));
+    // The tiny tolerance stops us from "improving" by floating-point noise.
+    if (pathCost(grid, line) < oldCost - 1e-9) {
+      return { line: line, endIndex: j };
+    }
+  }
+  return null;
 }
 
 // Length in pixels of a polyline, e.g. to compare raw vs smoothed paths.

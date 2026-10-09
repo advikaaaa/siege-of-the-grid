@@ -98,11 +98,24 @@ export const STEERING = {
   },
 };
 
+// ---- Hierarchical pathfinding (HPA*) ---------------------------------------------
+export const HPA = {
+  // 16 x 16 tile clusters: 96 / 16 = 6 columns, 64 / 16 = 4 rows = 24 clusters.
+  clusterSize: 16,
+  // An opening on a cluster border shorter than this gets ONE entrance in its
+  // middle; a longer opening gets TWO entrances, one at each end.
+  longEntranceLength: 6,
+  // After full refinement, look this many tiles ahead for cheaper straight
+  // shortcuts (see shortcutTilePath in smoothing.js).
+  shortcutLookahead: 24,
+};
+
 // ---- AI Lab --------------------------------------------------------------------
 export const LAB = {
   agentCount: 6,
   targetOrbitRadius: 180,    // pursue/evade target dot moves on this circle (px)
   targetOrbitSpeed: 0.7,     // angular speed of the target dot (rad/s)
+  benchmarkQueries: 200,     // random start/goal pairs in the A* vs HPA* benchmark
 };
 
 // ---- Map generation ---------------------------------------------------------

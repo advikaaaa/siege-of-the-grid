@@ -22,32 +22,56 @@
 
     <!-- AI Lab controls. Shown only while the AI Lab scene is active (aiLabScene.js). -->
     <section id="lab-panel" class="panel" hidden>
-      <h2>Behavior playground</h2>
-      <div class="button-grid">
-        <button data-behavior="seek">Seek</button>
-        <button data-behavior="flee">Flee</button>
-        <button data-behavior="arrive">Arrive</button>
-        <button data-behavior="pursue">Pursue</button>
-        <button data-behavior="evade">Evade</button>
-        <button data-behavior="wander">Wander</button>
+      <div class="tab-row">
+        <button data-lab-view="behaviors">Behaviors</button>
+        <button data-lab-view="compare">A* vs HPA*</button>
+        <button data-lab-view="benchmark">Benchmark</button>
       </div>
-      <button id="movement-toggle" class="wide">Movement: STEERING (K)</button>
 
-      <label class="slider">
-        maxSpeed <span id="value-max-speed"></span>
-        <input id="slider-max-speed" type="range" min="10" max="200" step="5">
-      </label>
-      <label class="slider">
-        maxForce <span id="value-max-force"></span>
-        <input id="slider-max-force" type="range" min="10" max="800" step="10">
-      </label>
-      <label class="slider">
-        slowing radius <span id="value-slowing-radius"></span>
-        <input id="slider-slowing-radius" type="range" min="5" max="200" step="5">
-      </label>
+      <!-- View 1: lab/behaviorPlayground.js -->
+      <div id="lab-behaviors" hidden>
+        <h2>Behavior playground</h2>
+        <div class="button-grid">
+          <button data-behavior="seek">Seek</button>
+          <button data-behavior="flee">Flee</button>
+          <button data-behavior="arrive">Arrive</button>
+          <button data-behavior="pursue">Pursue</button>
+          <button data-behavior="evade">Evade</button>
+          <button data-behavior="wander">Wander</button>
+        </div>
+        <button id="movement-toggle" class="wide">Movement: STEERING (K)</button>
 
-      <p id="behavior-explanation"></p>
-      <button id="lab-respawn" class="wide">Respawn NPCs</button>
+        <label class="slider">
+          maxSpeed <span id="value-max-speed"></span>
+          <input id="slider-max-speed" type="range" min="10" max="200" step="5">
+        </label>
+        <label class="slider">
+          maxForce <span id="value-max-force"></span>
+          <input id="slider-max-force" type="range" min="10" max="800" step="10">
+        </label>
+        <label class="slider">
+          slowing radius <span id="value-slowing-radius"></span>
+          <input id="slider-slowing-radius" type="range" min="5" max="200" step="5">
+        </label>
+
+        <p id="behavior-explanation"></p>
+        <button id="lab-respawn" class="wide">Respawn NPCs</button>
+      </div>
+
+      <!-- View 2: lab/pathCompare.js -->
+      <div id="lab-compare" hidden>
+        <h2>A* vs HPA* on one query</h2>
+        <div id="compare-stats"></div>
+      </div>
+
+      <!-- View 3: lab/benchmarkView.js -->
+      <div id="lab-benchmark" hidden>
+        <h2>Pathfinding benchmark</h2>
+        <button id="benchmark-run" class="wide">Run benchmark (200 queries)</button>
+        <div id="benchmark-table"></div>
+      </div>
+
+      <p class="hint">L: back to game</p>
     </section>
   </main>
   <script type="module" src="src/main.js"></script>
