@@ -13,7 +13,9 @@ import { FORMATION } from '../config.js';
 import { formationOffsets } from '../movement/formations.js';
 
 export function createSquad(id, members) {
-  const squad = { id: id, members: members, leader: members[0] };
+  // sharedTarget: a defender one member decided to attack; squadmates join in
+  // (squad coordination on Normal and Hard, see ai/difficulty.js).
+  const squad = { id: id, members: members, leader: members[0], sharedTarget: null };
   for (const member of members) {
     member.squad = squad;
   }

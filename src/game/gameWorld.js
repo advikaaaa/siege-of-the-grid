@@ -11,7 +11,7 @@
 
 import {
   AI, BASE, FORMATION, STEERING, WAVES, COMBAT, PLAYER_SPAWN_OFFSET_X,
-  PERFORMANCE, RESERVATIONS, REPLAN, MAP,
+  PERFORMANCE, RESERVATIONS, REPLAN, MAP, UNIT_STATS,
 } from '../config.js';
 import { vec, distance } from '../core/vector.js';
 import { createRng } from '../core/rng.js';
@@ -26,7 +26,7 @@ import { formationOffsets, FORMATION_NAMES } from '../movement/formations.js';
 import { moveUnit, pathOrder, idleOrder, followerFromTiles } from '../movement/unitMovement.js';
 import { createEnemyBrain } from '../ai/enemyBrain.js';
 import { createAllyBrain } from '../ai/allyBrain.js';
-import { chooseEngagementAction } from '../ai/decision.js';
+import { buildAiSettings } from '../ai/difficulty.js';
 import { createUnit } from './units.js';
 import { createBase } from './base.js';
 import { createSquad, updateSquad } from './squads.js';
@@ -36,7 +36,8 @@ import { WaveManager } from './waves.js';
 export const ALLY_COUNT = 8;
 
 export class GameWorld {
-  // app supplies the live movementMode ('steering' | 'kinematic', K key).
+  // app supplies the live movementMode ('steering' | 'kinematic', K key),
+  // difficulty ('EASY' | 'NORMAL' | 'HARD') and aiMode ('UNCERTAIN' | 'PREDICTABLE').
   constructor(seed, app) {
     this.app = app;
     this.seed = seed;
@@ -58,12 +59,9 @@ export class GameWorld {
     this.guardMode = false;
     this.commanderRespawnTimer = 0;
 
-    // HOW enemies decide. P7 swaps these for the predictable rules / difficulty.
-    this.aiSettings = {
-      reactionTime: AI.reactionTime,
-      chooseAction: (rng) => chooseEngagementAction(rng, AI.decisionWeights),
-      chooseFlankSide: (rng) => (rng.chance(0.5) ? 1 : -1),
-    };
+    // HOW enemies decide (difficulty + uncertain/predictable), see ai/difficulty.js.
+    this.aiSettings = buildAiSettings(app.difficulty ?? 'NORMAL', app.aiMode ?? 'UNCERTAIN');
+    this.allyRespawns = []; // [{ slotIndex, timer }] allies waiting to come back
 
     // Performance helpers (P6).
     this.hash = new SpatialHash(PERFORMANCE.hashCellSize, this.grid.width * MAP.tileSize, this.grid.height * MAP.tileSize);
@@ -125,6 +123,7 @@ export class GameWorld {
       }
       const enemy = this.addUnit('enemy', vec(tileCenterPixel(tile.x), tileCenterPixel(tile.y)));
       enemy.agent.heading = Math.PI; // facing left, towards the base
+      enemy.sightRange = UNIT_STATS.enemy.sightRange * this.aiSettings.sightMultiplier;
       enemy.spawnTile = leaderTile;
       members.push(enemy);
     }
@@ -200,6 +199,15 @@ export class GameWorld {
 
   // ---- Player commands -----------------------------------------------------------
 
+  // Difficulty or AI mode changed (menu, P key): rebuild the settings and apply
+  // the new sight range to every living enemy. Nothing else changes.
+  setAiOptions(difficultyName, aiMode) {
+    this.aiSettings = buildAiSettings(difficultyName, aiMode);
+    for (const enemy of this.enemyUnits()) {
+      enemy.sightRange = UNIT_STATS.enemy.sightRange * this.aiSettings.sightMultiplier;
+    }
+  }
+
   orderCommanderTo(goalTile) {
     const commander = this.commander;
     if (!commander.alive || !isWalkable(this.grid, goalTile.x, goalTile.y)) {
@@ -243,6 +251,7 @@ export class GameWorld {
       }
     }
     this.updateCommander(dt);
+    this.updateAllyRespawns(dt);
 
     // Path service: answer a few queued requests (time slicing)
     this.paths.update(this.time);
@@ -403,6 +412,27 @@ export class GameWorld {
     }
   }
 
+  // Dead allies come back at the base after COMBAT.allyRespawnSeconds, in their
+  // old formation slot (a balance choice: without it the Commander faced the
+  // last waves alone).
+  updateAllyRespawns(dt) {
+    for (const entry of this.allyRespawns) {
+      entry.timer -= dt;
+    }
+    const ready = this.allyRespawns.filter((entry) => entry.timer <= 0);
+    this.allyRespawns = this.allyRespawns.filter((entry) => entry.timer > 0);
+    for (const entry of ready) {
+      const tile = this.playerSpawnTile();
+      const ally = this.addUnit('ally', vec(tileCenterPixel(tile.x), tileCenterPixel(tile.y)));
+      ally.slotIndex = entry.slotIndex;
+      ally.brain = createAllyBrain(ally, this);
+    }
+  }
+
+  allyCount() {
+    return this.units.filter((unit) => unit.kind === 'ally' && unit.alive).length;
+  }
+
   respawnCommander() {
     const commander = this.commander;
     const tile = this.playerSpawnTile();
@@ -421,6 +451,9 @@ export class GameWorld {
         if (unit === this.commander) {
           this.commanderRespawnTimer = COMBAT.commanderRespawnSeconds;
           unit.order = idleOrder();
+        }
+        if (unit.kind === 'ally') {
+          this.allyRespawns.push({ slotIndex: unit.slotIndex, timer: COMBAT.allyRespawnSeconds });
         }
       }
     }

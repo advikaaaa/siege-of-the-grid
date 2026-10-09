@@ -125,8 +125,9 @@ export const UNIT_STATS = {
 };
 
 export const COMBAT = {
-  baseMaxHp: 3000,
+  baseMaxHp: 2000,
   commanderRespawnSeconds: 5,
+  allyRespawnSeconds: 35,        // dead allies return at the base after this long
   retreatBelowHpFraction: 0.3,   // ATTACK -> RETREAT when HP < 30%
   regroupAboveHpFraction: 0.7,   // RETREAT -> REGROUP when HP > 70%
   retreatRegenPerSecond: 10,     // HP regained per second while retreating
@@ -139,11 +140,8 @@ export const AI = {
   // 1/60 s step: line-of-sight checks are the expensive part, and real players
   // do not react within 16 ms either.
   thinkInterval: 0.2,
-  // Delay between seeing a target and acting on it (DECIDE state).
-  // P7 makes this depend on the difficulty.
-  reactionTime: 0.5,
-  // Uncertain decisions: weighted random choice when an enemy sees a target.
-  decisionWeights: { ATTACK: 0.7, REPOSITION: 0.2, RETREAT: 0.1 },
+  // Reaction time and the ATTACK / REPOSITION / RETREAT weights depend on the
+  // difficulty: see ai/difficulty.js.
   flankDistance: 48,          // REPOSITION: how far to the side of the target to go
   flankTimeout: 3,            // give up flanking after this long and just attack
   loseTargetDistance: 140,    // a chased target further than this is "lost"

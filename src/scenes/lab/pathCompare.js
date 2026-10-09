@@ -128,7 +128,7 @@ export class PathCompareView {
       'Blue dashed + circles = HPA* abstract path',
       'Yellow = cluster entrances, white grid = 16x16 clusters',
       'HPA* graph: ' + world.graph.nodes.length + ' nodes, built in ' + world.graph.stats.buildTimeMs.toFixed(0) + ' ms',
-      'L: back to game',
+      'Esc: back to menu',
     ]);
   }
 }

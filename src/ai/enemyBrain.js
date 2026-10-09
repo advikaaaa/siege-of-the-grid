@@ -73,9 +73,10 @@ export const ENEMY_TRANSITIONS = {
 
 // world must provide: grid, rng, base, opponentsNear(unit, radius),
 // requestPath(unit, tile, callback), requestRoute(unit, tile, callback), and
-// aiSettings = { reactionTime, chooseAction(rng, unit), chooseFlankSide(rng) }.
-// HOW the enemy chooses (uncertain dice or predictable rules, P7) lives in
-// aiSettings, so the state machine itself never changes.
+// aiSettings (built by ai/difficulty.js) = { reactionTime, sharedTargets,
+// chooseAction(rng, unit, world), chooseFlankSide(rng, unit) }.
+// HOW the enemy chooses (difficulty, uncertain dice or predictable rules) lives
+// in aiSettings, so the state machine itself never changes.
 export function createEnemyBrain(unit, world) {
   const grid = world.grid;
 
@@ -90,6 +91,17 @@ export function createEnemyBrain(unit, world) {
       return true;
     }
     return distance(unit.agent.position, target.agent.position) > AI.loseTargetDistance;
+  }
+
+  // Squad coordination: a target a squadmate decided to attack, if it is still
+  // alive and close enough for this unit to join in (even without seeing it).
+  function sharedSquadTarget() {
+    const shared = unit.squad.sharedTarget;
+    if (!world.aiSettings.sharedTargets || shared === null || !shared.alive) {
+      return null;
+    }
+    const closeEnough = distance(unit.agent.position, shared.agent.position) < AI.loseTargetDistance;
+    return closeEnough ? shared : null;
   }
 
   function lookForDefender() {
@@ -124,7 +136,7 @@ export function createEnemyBrain(unit, world) {
   function chooseFlankPoint() {
     const target = unit.target.agent.position;
     const towardsMe = normalize(subtract(unit.agent.position, target));
-    const side = world.aiSettings.chooseFlankSide(world.rng);
+    const side = world.aiSettings.chooseFlankSide(world.rng, unit);
     const sideways = vec(-towardsMe.y * side, towardsMe.x * side);
     const point = add(target, scale(sideways, AI.flankDistance));
     const reachable = isWalkableAtPixel(grid, point) && hasClearLine(grid, unit.agent.position, point);
@@ -146,7 +158,7 @@ export function createEnemyBrain(unit, world) {
           return 'REACHED_BASE';
         }
         if (unit.thinksThisStep) {
-          const seen = lookForDefender();
+          const seen = lookForDefender() ?? sharedSquadTarget();
           if (seen !== null) {
             unit.target = seen;
             return 'ENEMY_SEEN';
@@ -173,7 +185,11 @@ export function createEnemyBrain(unit, world) {
         if (fsm.timeInState < world.aiSettings.reactionTime) {
           return null;
         }
-        const action = world.aiSettings.chooseAction(world.rng, unit);
+        const action = world.aiSettings.chooseAction(world.rng, unit, world);
+        // Squad coordination (Normal and Hard): squadmates go for the same target.
+        if (action === 'ATTACK' && world.aiSettings.sharedTargets) {
+          unit.squad.sharedTarget = unit.target;
+        }
         return 'CHOSE_' + action;
       },
     },

@@ -144,3 +144,79 @@ body {
 .stats-table td:first-child {
   text-align: left;
 }
+
+/* ---- Menus and screens ------------------------------------------------------ */
+
+.panel.centered {
+  top: 50%;
+  left: 50%;
+  right: auto;
+  transform: translate(-50%, -50%);
+  width: 340px;
+  text-align: left;
+}
+
+.panel.wide-panel {
+  width: min(760px, calc(100vw - 32px));
+  max-height: 88vh;
+  line-height: 1.45;
+}
+
+.panel h1 {
+  margin: 0 0 4px;
+  font-size: 26px;
+}
+
+.panel h3 {
+  margin: 14px 0 4px;
+  font-size: 14px;
+  color: #ffd84d;
+}
+
+.panel .tagline,
+.panel .note {
+  color: #c9d1dc;
+}
+
+.panel .note {
+  font-size: 12px;
+  margin: 6px 0 0;
+}
+
+.panel button.primary {
+  background: #3d6fb6;
+  border-color: #6d9be0;
+  font-weight: bold;
+}
+
+.difficulty {
+  border: 1px solid #3a4250;
+  border-radius: 4px;
+  margin: 10px 0;
+}
+
+.difficulty label {
+  margin-right: 10px;
+}
+
+.seed-row button {
+  margin-left: 8px;
+}
+
+#game-toolbar {
+  position: fixed;
+  right: 8px;
+  bottom: 8px;
+  display: flex;
+  gap: 6px;
+}
+
+#game-toolbar button {
+  padding: 5px 8px;
+  background: rgba(20, 24, 30, 0.85);
+  color: #e8e8e8;
+  border: 1px solid #485266;
+  border-radius: 4px;
+  cursor: pointer;
+  font: 12px system-ui, sans-serif;
+}

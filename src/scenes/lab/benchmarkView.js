@@ -77,7 +77,7 @@ export class BenchmarkView {
 
     if (this.results === null) {
       ctx.font = '14px sans-serif';
-      ctx.fillText('Press "Run benchmark" in the panel. (L: back to game)', 40, 70);
+      ctx.fillText('Press "Run benchmark" in the panel. (Esc: back to menu)', 40, 70);
       return;
     }
 

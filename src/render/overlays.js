@@ -4,9 +4,10 @@
  *   1 - paths: raw A* path (orange, through every tile centre) vs smoothed path (cyan)
  *   2 - HPA*: cluster grid, entrances, abstract path
  *   4 - FSM state labels above units
+ *   3 - steering: velocity, each weighted force, obstacle-avoidance feelers
  *   5 - bridge reservation timeline
+ *   6 - sight radii
  *   7 - spatial hash cells
- *   (3 and 6 are added in P7: steering vectors, sight radii.)
  * Used by: scenes/gameScene.js, scenes/lab/pathCompare.js.
  */
 
@@ -14,6 +15,7 @@ import { MAP } from '../config.js';
 import { tilePathToPixels, tileToPixel } from '../pathfinding/smoothing.js';
 import { clusterBounds } from '../pathfinding/hpa.js';
 import { fillCircle, strokeCircle, drawLine } from './draw.js';
+import { drawSteeringVectors, drawFeelers } from './unitRenderer.js';
 
 export const RAW_PATH_COLOR = '#ff9f1c';
 export const SMOOTH_PATH_COLOR = '#00e5ff';
@@ -190,5 +192,33 @@ export function drawSpatialHash(ctx, hash) {
     ctx.strokeRect(cell.column * size + 0.5, cell.row * size + 0.5, size - 1, size - 1);
     ctx.fillStyle = '#ffff66';
     ctx.fillText(String(cell.count), cell.column * size + 2, cell.row * size + 9);
+  }
+}
+
+// ---- Overlay 3: steering vectors ------------------------------------------------
+
+// For every unit: feelers, velocity (white) and each weighted force in its own
+// colour (see FORCE_COLORS in unitRenderer.js). In kinematic mode there are no
+// forces, so only the velocity arrows remain: a nice way to SEE the difference.
+export function drawAllSteering(ctx, units, grid) {
+  for (const unit of units) {
+    if (!unit.alive) {
+      continue;
+    }
+    drawFeelers(ctx, unit.agent, grid);
+    drawSteeringVectors(ctx, unit.agent);
+  }
+}
+
+// ---- Overlay 6: sight radii --------------------------------------------------------
+
+// Enemies red, player units blue. Difficulty changes the enemies' circles.
+export function drawSightRadii(ctx, units) {
+  for (const unit of units) {
+    if (!unit.alive) {
+      continue;
+    }
+    const color = unit.team === 'enemy' ? 'rgba(230, 57, 70, 0.35)' : 'rgba(58, 134, 255, 0.35)';
+    strokeCircle(ctx, unit.agent.position, unit.sightRange, color);
   }
 }

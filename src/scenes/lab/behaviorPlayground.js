@@ -317,7 +317,7 @@ export class BehaviorPlayground {
       'Seed: ' + this.app.seed + '   FPS: ' + this.app.loopStats.fps,
       'Arrows: white = velocity, red = avoidance,',
       '        orange = separation, other = behavior',
-      'L: back to game',
+      'Esc: back to menu',
     ]);
   }
 

@@ -3,14 +3,16 @@
  * Course concept: makes the AI observable (seed, FPS, and in later phases
  * path stats, movement mode, AI mode, difficulty). For a viva demo, seeing the
  * numbers matters as much as seeing the units.
- * Used by: scenes/gameScene.js (later also the AI Lab).
+ * Used by: scenes/gameScene.js, scenes/lab/*.
  */
 
 const LINE_HEIGHT = 14;
 const PADDING = 6;
 
-// Draws a semi-transparent box at (x, y) containing one text line per array entry.
-export function drawTextPanel(ctx, x, y, lines) {
+// Draws a semi-transparent box containing one text line per array entry.
+// anchor 'left': (x, y) is the top-left corner; 'right': (x, y) is the top-RIGHT
+// corner (used for the panel on the right edge of the screen).
+export function drawTextPanel(ctx, x, y, lines, anchor = 'left') {
   ctx.font = '12px monospace';
 
   let widest = 0;
@@ -19,6 +21,9 @@ export function drawTextPanel(ctx, x, y, lines) {
   }
   const width = widest + PADDING * 2;
   const height = lines.length * LINE_HEIGHT + PADDING * 2;
+  if (anchor === 'right') {
+    x -= width;
+  }
 
   ctx.fillStyle = 'rgba(0, 0, 0, 0.65)';
   ctx.fillRect(x, y, width, height);

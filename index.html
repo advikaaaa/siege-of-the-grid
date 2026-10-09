@@ -20,6 +20,129 @@
     <!-- The real drawing size (1152x768) is set in src/main.js from src/config.js. -->
     <canvas id="game-canvas" width="1152" height="768"></canvas>
 
+    <!-- Main menu (scenes/menuScene.js) -->
+    <section id="menu-panel" class="panel centered" hidden>
+      <h1>Siege of the Grid</h1>
+      <p class="tagline">A top-down defense game where every unit runs real game AI.</p>
+      <fieldset class="difficulty">
+        <legend>Difficulty</legend>
+        <label><input type="radio" name="difficulty" value="EASY"> Easy</label>
+        <label><input type="radio" name="difficulty" value="NORMAL"> Normal</label>
+        <label><input type="radio" name="difficulty" value="HARD"> Hard</label>
+        <p class="note">Enemies get smarter, not stronger: difficulty changes only their reaction
+          time, squad coordination, how often they flank and how far they see.</p>
+      </fieldset>
+      <p class="seed-row">Seed: <span id="menu-seed"></span>
+        <button id="menu-new-seed">New seed</button></p>
+      <button id="menu-play" class="wide primary">Play</button>
+      <button id="menu-lab" class="wide">AI Lab</button>
+      <button id="menu-howto" class="wide">How It Works</button>
+    </section>
+
+    <!-- Pause menu (gameScene.js, Esc) -->
+    <section id="pause-panel" class="panel centered" hidden>
+      <h2>Paused</h2>
+      <button id="pause-resume" class="wide primary">Resume (Esc)</button>
+      <button id="pause-restart" class="wide">Restart (same seed)</button>
+      <button id="pause-menu" class="wide">Main menu</button>
+    </section>
+
+    <!-- Win / lose screen (scenes/endScene.js) -->
+    <section id="end-panel" class="panel centered" hidden>
+      <h2 id="end-title"></h2>
+      <p id="end-summary"></p>
+      <button id="end-again" class="wide primary">Play again (same seed)</button>
+      <button id="end-menu" class="wide">Main menu</button>
+    </section>
+
+    <!-- Small toolbar during the game (gameScene.js) -->
+    <div id="game-toolbar" hidden>
+      <button id="toolbar-stress">Stress test: +300 enemies (T)</button>
+      <button id="toolbar-help">Help (H)</button>
+      <button id="toolbar-pause">Pause (Esc)</button>
+    </div>
+
+    <!-- How It Works (scenes/howItWorksScene.js) -->
+    <section id="howto-panel" class="panel centered wide-panel" hidden>
+      <h2>How It Works</h2>
+      <p>Every AI technique from the course is a visible mechanic. The key in brackets
+        toggles its demo during the game.</p>
+
+      <h3>1. Kinematic vs steering movement (K)</h3>
+      <p><b>Kinematic</b>: velocity is set directly, at full speed towards the target, and the
+        unit faces its new direction instantly. Exact, but robotic. <b>Steering</b>: behaviors
+        return forces; the unit accelerates (a = F / m, v += a dt, p += v dt), so it speeds up,
+        curves and slows down naturally. Press K to switch every unit live; overlay 3 shows the
+        forces. Files: movement/kinematic.js, movement/steering.js, movement/agent.js.</p>
+
+      <h3>2. Steering behaviors (overlay 3, AI Lab)</h3>
+      <p>Seek, flee, arrive (slows inside a radius), pursue and evade (predict where the target
+        will be: T = distance / maxSpeed), wander (a jittering point on a circle ahead),
+        obstacle avoidance (feeler rays), separation (inverse-square push), path following and
+        formation slots. They are blended with weights AND priority: avoidance and separation
+        get the force budget first. Overlay 3 draws each force in its own colour.</p>
+
+      <h3>3. A* pathfinding (overlay 1)</h3>
+      <p>Click to move the Commander. A* expands the tile with the lowest f = g + h (g: cost so
+        far, h: octile distance to the goal) on an 8-direction grid with tile costs (forest
+        costs 3) and no corner-cutting. The path is then smoothed with line-of-sight checks.
+        Overlay 1: orange = raw A* tiles, cyan = the smoothed waypoints units follow.</p>
+
+      <h3>4. Hierarchical pathfinding, HPA* (overlay 2, AI Lab)</h3>
+      <p>The map is cut into 24 clusters of 16 x 16. Entrances on cluster borders and the paths
+        between them are precomputed, so a long trip is first planned on a small abstract graph
+        and then refined one segment at a time, only when needed (lazy refinement). Squads
+        share routes through a cache. Paths are a few percent longer than A*'s because they
+        must pass through entrance tiles; the AI Lab benchmark measures this.</p>
+
+      <h3>5. Time-aware planning at the bridges (overlay 5)</h3>
+      <p>The river has 3 bridges. A unit crossing it estimates WHEN it will reach each bridge
+        (ETA = path length / speed), checks the reservation table for room in that time window,
+        and picks the bridge with the smallest travel time + expected wait. It then reserves
+        its slot and waits at the entrance if needed (yellow ring). Units that make no progress
+        for 1.5 s replan only their next 2 waypoints (magenta ring, overlay 1). This is a
+        simplified, chokepoint-only version of space-time planning such as SIPP.</p>
+
+      <h3>6. Many NPCs: performance (overlay 7, T)</h3>
+      <p>A spatial hash puts units into 24 px buckets so "who is near me?" only checks nearby
+        buckets (overlay 7; the stats panel compares checks with brute force). Path requests
+        wait in a queue and only a few are answered per step (time slicing), with a cache for
+        repeated queries. Press T to add 300 marching enemies.</p>
+
+      <h3>7. Decision making with finite state machines (overlay 4)</h3>
+      <p>Enemies: MARCH, DECIDE, ATTACK, REPOSITION, RETREAT, REGROUP, SIEGE. Allies: FOLLOW,
+        ENGAGE, GUARD (G). Every state has enter / update / exit and the transitions live in
+        one explicit table. Overlay 4 shows each unit's state. The enemy's goal chain: attack
+        the base, fight defenders in the way, retreat when HP drops below 30%.</p>
+
+      <h3>8. Uncertainty (overlay 4)</h3>
+      <p>When an enemy sees a defender it waits its reaction time, then rolls weighted dice with
+        the seeded random generator: attack 70%, flank 20%, retreat 10% (Normal). The same seed
+        always gives the same game, so demos are reproducible.</p>
+
+      <h3>9. The complexity fallacy (P)</h3>
+      <p>P switches enemies to <b>predictable rules</b>: attack if the Commander's HP is below
+        30%, retreat if their own HP is below 50%, otherwise always flank to the same side.
+        After seeing each rule once a player can exploit them: stay above 30% HP and they never
+        commit, hurt them to half and they always leave, and every flank arrives on the same,
+        known side. Adding more rules would not help: the behaviour would still be a fixed
+        table from situation to action, just a longer one to learn, with new gaps where rules
+        interact. More complexity is not more unpredictability; a little well-placed
+        randomness gives varied behaviour with less logic.</p>
+
+      <h3>10. Difficulty: smarter, not stronger</h3>
+      <p>Easy / Normal / Hard change only reaction time (0.8 / 0.5 / 0.25 s), squad coordination
+        (Normal: squads share targets; Hard: also pincer flanking), how often enemies flank,
+        and how far they see. HP and damage are identical on every difficulty.</p>
+
+      <h3>Controls</h3>
+      <p>Left click: move the Commander. F: formation (Line / V / Box). G: guard the base / rejoin.
+        K: kinematic / steering. P: predictable / uncertain AI. 1-7: overlays. T: stress test.
+        H: help. Esc: pause.</p>
+
+      <button id="howto-back" class="wide primary">Back</button>
+    </section>
+
     <!-- AI Lab controls. Shown only while the AI Lab scene is active (aiLabScene.js). -->
     <section id="lab-panel" class="panel" hidden>
       <div class="tab-row">
@@ -71,7 +194,7 @@
         <div id="benchmark-table"></div>
       </div>
 
-      <p class="hint">L: back to game</p>
+      <button id="lab-back" class="wide">Back to menu (Esc)</button>
     </section>
   </main>
   <script type="module" src="src/main.js"></script>

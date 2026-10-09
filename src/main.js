@@ -3,17 +3,21 @@
  * Course concept: none directly; it wires the pieces together.
  * Used by: index.html (<script type="module" src="src/main.js">).
  *
- * Data flow of one frame (grows in later phases):
+ * Data flow of one frame:
  *   browser events -> Input -> loop.update(dt) -> current scene.update(dt)
  *                                              -> current scene.render(ctx)
+ * Scenes: menu (start), game, lab (AI Lab), howto (How It Works), end (win/lose).
  */
 
 import { MAP, DEFAULT_SEED } from './config.js';
 import { startLoop } from './core/loop.js';
 import { Input } from './core/input.js';
 import { SceneManager } from './core/sceneManager.js';
+import { MenuScene } from './scenes/menuScene.js';
 import { GameScene } from './scenes/gameScene.js';
 import { AiLabScene } from './scenes/aiLabScene.js';
+import { HowItWorksScene } from './scenes/howItWorksScene.js';
+import { EndScene } from './scenes/endScene.js';
 
 // Lets you reproduce a demo by opening e.g. index.html?seed=4242
 function readSeedFromUrl() {
@@ -40,11 +44,18 @@ const app = {
   loopStats: { fps: 0 },
   // 'steering' or 'kinematic'. Shared by all scenes, switched with K.
   movementMode: 'steering',
+  // 'EASY' | 'NORMAL' | 'HARD', chosen in the main menu.
+  difficulty: 'NORMAL',
+  // 'UNCERTAIN' (weighted dice) or 'PREDICTABLE' (fixed rules), switched with P.
+  aiMode: 'UNCERTAIN',
 };
 
+app.scenes.register('menu', new MenuScene(app));
 app.scenes.register('game', new GameScene(app));
 app.scenes.register('lab', new AiLabScene(app));
-app.scenes.switchTo('game');
+app.scenes.register('howto', new HowItWorksScene(app));
+app.scenes.register('end', new EndScene(app));
+app.scenes.switchTo('menu');
 
 function update(dt) {
   app.scenes.update(dt);

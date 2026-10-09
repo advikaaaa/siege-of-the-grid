@@ -8,7 +8,7 @@
  *
  * Each view has the same methods as a scene (enter, exit, update, render), so
  * this file only switches between them and shows/hides the HTML panel.
- *   L - back to the game
+ *   Esc (or the Back button) - back to the main menu
  */
 
 import { createRng } from '../core/rng.js';
@@ -34,6 +34,7 @@ export class AiLabScene {
     for (const button of this.panel.querySelectorAll('[data-lab-view]')) {
       button.addEventListener('click', () => this.switchView(button.dataset.labView));
     }
+    document.getElementById('lab-back').addEventListener('click', () => this.app.scenes.switchTo('menu'));
   }
 
   // The pathfinding views use the SAME map as the game (same seed). Generating the
@@ -75,8 +76,8 @@ export class AiLabScene {
   }
 
   update(dt) {
-    if (this.app.input.wasPressed('l')) {
-      this.app.scenes.switchTo('game');
+    if (this.app.input.wasPressed('Escape')) {
+      this.app.scenes.switchTo('menu');
       return;
     }
     this.activeView().update(dt);

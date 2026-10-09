@@ -1,27 +1,25 @@
 /*
  * gameScene.js - the main game screen: input + drawing around a GameWorld.
  * Course concept: this is where every technique is visible at once. All the
- * simulation lives in game/gameWorld.js; this file only turns keys and clicks
- * into commands and draws the world plus the debug overlays.
- * Used by: main.js (registered with the SceneManager).
+ * simulation lives in game/gameWorld.js; this file only turns keys, clicks and
+ * buttons into commands and draws the world, the HUD and the debug overlays.
+ * Used by: main.js (registered with the SceneManager as 'game').
  *
- * Controls so far:
+ * Controls:
  *   left click - send the Commander to that tile (A* + smoothing + path following)
  *   F          - cycle ally formation: LINE / V / BOX
  *   G          - allies guard the base / rejoin the Commander
  *   K          - switch kinematic / steering movement (all units)
- *   1          - overlay: paths (raw A* orange, followed waypoints cyan)
- *   2          - overlay: HPA* clusters, entrances and last abstract route
- *   4          - overlay: FSM state above every NPC
- *   5          - overlay: bridge reservation timeline (+ waiting units ringed)
- *   7          - overlay: spatial hash cells
- *   T          - stress test: spawn 300 extra marching enemies
- *   R          - new map with a new seed (restarts the game)
- *   L          - open the AI Lab (temporary until the main menu exists in P7)
+ *   P          - switch enemy AI: uncertain (weighted dice) / predictable rules
+ *   1 ... 7    - debug overlays (see render/overlays.js)
+ *   T          - stress test: spawn 300 extra marching enemies (also a button)
+ *   H          - help overlay with every key
+ *   Esc        - pause menu
  */
 
-import { MAP, RESERVATIONS } from '../config.js';
-import { GameWorld } from '../game/gameWorld.js';
+import { MAP, RESERVATIONS, WAVES } from '../config.js';
+import { GameWorld, ALLY_COUNT } from '../game/gameWorld.js';
+import { DIFFICULTIES } from '../ai/difficulty.js';
 import { inBounds, getTile } from '../world/grid.js';
 import { TILE_INFO } from '../world/tiles.js';
 import { drawMap, drawTileHighlight } from '../render/mapRenderer.js';
@@ -29,54 +27,97 @@ import { drawUnit, drawHealthBar } from '../render/unitRenderer.js';
 import { strokeCircle } from '../render/draw.js';
 import {
   drawRawPath, drawFollowerPath, drawHpaOverlay, drawGoalMarker, drawStateLabels,
-  drawBridgeTimeline, drawBridgeLabels, drawSpatialHash,
+  drawBridgeTimeline, drawBridgeLabels, drawSpatialHash, drawAllSteering, drawSightRadii,
 } from '../render/overlays.js';
 import { drawTextPanel } from '../render/hud.js';
+
+// Number key -> overlay name and description (also used by the help overlay).
+const OVERLAYS = [
+  { key: '1', name: 'paths', label: 'paths: raw A* (orange) vs followed waypoints (cyan)' },
+  { key: '2', name: 'hpa', label: 'HPA*: clusters, entrances, abstract route' },
+  { key: '3', name: 'steering', label: 'steering: velocity + each force, feelers' },
+  { key: '4', name: 'states', label: 'FSM state above every NPC' },
+  { key: '5', name: 'bridges', label: 'bridge reservation timeline, waiting units' },
+  { key: '6', name: 'sight', label: 'sight radii' },
+  { key: '7', name: 'hash', label: 'spatial hash cells' },
+];
 
 export class GameScene {
   constructor(app) {
     this.app = app;
     this.world = null;
     this.hoveredTile = null;
-    this.overlays = { paths: false, hpa: false, states: false, bridges: false, hash: false };
+    this.paused = false;
+    this.showHelp = false;
+    this.overlays = {};
+    for (const overlay of OVERLAYS) {
+      this.overlays[overlay.name] = false;
+    }
+
+    this.toolbar = document.getElementById('game-toolbar');
+    this.pausePanel = document.getElementById('pause-panel');
+    document.getElementById('toolbar-stress').addEventListener('click', () => this.world.spawnStressTest());
+    document.getElementById('toolbar-help').addEventListener('click', () => { this.showHelp = !this.showHelp; });
+    document.getElementById('toolbar-pause').addEventListener('click', () => this.setPaused(true));
+    document.getElementById('pause-resume').addEventListener('click', () => this.setPaused(false));
+    document.getElementById('pause-restart').addEventListener('click', () => {
+      this.startNewGame(this.world.seed);
+      this.setPaused(false);
+    });
+    document.getElementById('pause-menu').addEventListener('click', () => this.app.scenes.switchTo('menu'));
   }
 
-  // Only build the world the first time, so visiting the AI Lab and coming back
-  // continues the same game.
-  enter() {
-    if (this.world === null) {
+  // params.newGame: start a fresh game with app.seed. Otherwise (e.g. coming
+  // back from the pause menu) the current game simply continues.
+  enter(params) {
+    if (params.newGame === true || this.world === null) {
       this.startNewGame(this.app.seed);
     }
+    this.toolbar.hidden = false;
+    this.setPaused(false);
   }
 
-  exit() {}
+  exit() {
+    this.toolbar.hidden = true;
+    this.pausePanel.hidden = true;
+  }
 
   startNewGame(seed) {
-    this.app.seed = seed; // the HUD and the AI Lab always use the current map's seed
+    this.app.seed = seed;
     this.world = new GameWorld(seed, this.app);
   }
 
+  setPaused(paused) {
+    this.paused = paused;
+    this.pausePanel.hidden = !paused;
+  }
+
   update(dt) {
-    this.handleKeys();
-    if (this.app.scenes.currentScene !== this) {
-      return; // a key switched to another scene
+    if (this.app.input.wasPressed('Escape')) {
+      this.setPaused(!this.paused);
     }
+    if (this.paused) {
+      return;
+    }
+    this.handleKeys();
     this.handleClicks();
     this.world.update(dt);
     this.hoveredTile = this.tileUnderMouse();
+
+    if (this.world.state !== 'playing') {
+      this.app.scenes.switchTo('end', { won: this.world.state === 'won', summary: this.endSummary() });
+    }
   }
 
   handleKeys() {
     const input = this.app.input;
     const world = this.world;
-    if (input.wasPressed('r')) {
-      // The next seed comes from the current RNG (not Math.random), so even the
-      // sequence of maps you get by pressing R is reproducible.
-      this.startNewGame(world.rng.int(1, 999999));
-      return;
-    }
     if (input.wasPressed('k')) {
       this.app.movementMode = this.app.movementMode === 'steering' ? 'kinematic' : 'steering';
+    }
+    if (input.wasPressed('p')) {
+      this.app.aiMode = this.app.aiMode === 'UNCERTAIN' ? 'PREDICTABLE' : 'UNCERTAIN';
+      world.setAiOptions(this.app.difficulty, this.app.aiMode);
     }
     if (input.wasPressed('f')) {
       world.cycleFormation();
@@ -84,27 +125,16 @@ export class GameScene {
     if (input.wasPressed('g')) {
       world.toggleGuard();
     }
-    if (input.wasPressed('1')) {
-      this.overlays.paths = !this.overlays.paths;
-    }
-    if (input.wasPressed('2')) {
-      this.overlays.hpa = !this.overlays.hpa;
-    }
-    if (input.wasPressed('4')) {
-      this.overlays.states = !this.overlays.states;
-    }
-    if (input.wasPressed('5')) {
-      this.overlays.bridges = !this.overlays.bridges;
-    }
-    if (input.wasPressed('7')) {
-      this.overlays.hash = !this.overlays.hash;
-    }
     if (input.wasPressed('t')) {
       world.spawnStressTest();
     }
-    // Temporary way into the AI Lab until the main menu exists (P7).
-    if (input.wasPressed('l')) {
-      this.app.scenes.switchTo('lab');
+    if (input.wasPressed('h')) {
+      this.showHelp = !this.showHelp;
+    }
+    for (const overlay of OVERLAYS) {
+      if (input.wasPressed(overlay.key)) {
+        this.overlays[overlay.name] = !this.overlays[overlay.name];
+      }
     }
   }
 
@@ -127,6 +157,16 @@ export class GameScene {
     return inBounds(this.world.grid, tile.x, tile.y) ? tile : null;
   }
 
+  endSummary() {
+    const world = this.world;
+    const minutes = Math.floor(world.time / 60);
+    const seconds = Math.floor(world.time % 60).toString().padStart(2, '0');
+    const survived = world.state === 'won' ? WAVES.total : world.waves.waveNumber - 1;
+    return 'Survived ' + survived + ' of ' + WAVES.total + ' waves in ' + minutes + ':' + seconds +
+      '. Seed ' + world.seed + ', ' + DIFFICULTIES[this.app.difficulty].label + ', ' +
+      this.app.aiMode.toLowerCase() + ' AI.';
+  }
+
   // ---- Drawing -------------------------------------------------------------------
 
   render(ctx) {
@@ -139,12 +179,18 @@ export class GameScene {
     if (this.overlays.hash) {
       drawSpatialHash(ctx, world.hash);
     }
+    if (this.overlays.sight) {
+      drawSightRadii(ctx, world.units);
+    }
     drawHealthBar(ctx, { x: world.base.centre.x, y: world.base.rect.top }, 48, 14, world.base.hp / world.base.maxHp);
 
     if (this.overlays.paths) {
       this.drawPaths(ctx);
     }
     this.drawCommanderGoal(ctx);
+    if (this.overlays.steering) {
+      drawAllSteering(ctx, world.units, world.grid);
+    }
     for (const unit of world.units) {
       drawUnit(ctx, unit);
     }
@@ -160,9 +206,10 @@ export class GameScene {
       drawTileHighlight(ctx, this.hoveredTile.x, this.hoveredTile.y);
     }
 
-    drawTextPanel(ctx, 8, 8, this.hudLines());
-    if (world.state !== 'playing') {
-      this.drawEndBanner(ctx);
+    drawTextPanel(ctx, 8, 8, this.statsLines());
+    drawTextPanel(ctx, ctx.canvas.width - 8, 8, this.statusLines(), 'right');
+    if (this.showHelp) {
+      drawTextPanel(ctx, ctx.canvas.width / 2 - 230, 190, this.helpLines());
     }
   }
 
@@ -202,40 +249,23 @@ export class GameScene {
     }
   }
 
-  drawEndBanner(ctx) {
-    const won = this.world.state === 'won';
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
-    ctx.fillRect(0, ctx.canvas.height / 2 - 40, ctx.canvas.width, 80);
-    ctx.fillStyle = won ? '#4caf50' : '#f44336';
-    ctx.font = 'bold 32px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText(won ? 'VICTORY - all 10 waves survived' : 'DEFEAT - the base has fallen', ctx.canvas.width / 2, ctx.canvas.height / 2 + 4);
-    ctx.font = '14px sans-serif';
-    ctx.fillStyle = '#ffffff';
-    ctx.fillText('Press R for a new game', ctx.canvas.width / 2, ctx.canvas.height / 2 + 28);
-    ctx.textAlign = 'left';
-  }
+  // ---- HUD text ------------------------------------------------------------------
 
-  hudLines() {
+  // Left panel: the AI / performance statistics.
+  statsLines() {
     const world = this.world;
-    const commander = world.commander;
-    const commanderText = commander.alive
-      ? 'Commander HP: ' + Math.ceil(commander.hp) + '/' + commander.maxHp
-      : 'Commander respawns in ' + world.commanderRespawnTimer.toFixed(1) + ' s';
-    const lines = [
-      'Seed: ' + world.seed + '   FPS: ' + this.app.loopStats.fps,
-      world.waveLabel() + '   Enemies: ' + world.enemyCount(),
-      'Base HP: ' + Math.ceil(world.base.hp) + '/' + world.base.maxHp + '   ' + commanderText,
-      'Movement: ' + this.app.movementMode.toUpperCase() + ' (K)   Formation: ' + world.formationName +
-        ' (F)   ' + (world.guardMode ? 'GUARDING base (G)' : 'Following (G to guard)'),
-    ];
     const pathStats = world.paths.stats;
     const unitCount = world.units.filter((unit) => unit.alive).length;
-    // Brute force would compare every unit with every other one: n * n checks.
-    lines.push('Units: ' + unitCount + '   Neighbour checks: ' + world.stats.neighbourChecks +
-      ' (brute force: ' + unitCount * unitCount + ')');
-    lines.push('Path requests this step: ' + pathStats.processedThisStep + '   queued: ' + world.paths.queuedCount() +
-      '   cache hits: ' + pathStats.cacheHits + '   local replans: ' + world.stats.localReplans);
+    const lines = [
+      'FPS: ' + this.app.loopStats.fps + '   Seed: ' + world.seed,
+      'Difficulty: ' + DIFFICULTIES[this.app.difficulty].label + '   AI: ' + this.app.aiMode + ' (P)' +
+        '   Movement: ' + this.app.movementMode.toUpperCase() + ' (K)',
+      // Brute force would compare every unit with every other one: n * n checks.
+      'Units: ' + unitCount + '   Neighbour checks: ' + world.stats.neighbourChecks +
+        ' (brute force: ' + unitCount * unitCount + ')',
+      'Path requests this step: ' + pathStats.processedThisStep + '   queued: ' + world.paths.queuedCount() +
+        '   cache hits: ' + pathStats.cacheHits + '   local replans: ' + world.stats.localReplans,
+    ];
     const astar = pathStats.lastAstar;
     if (astar !== null) {
       lines.push('Last A*: ' + astar.nodesExpanded + ' nodes, ' + astar.timeMs.toFixed(2) + ' ms');
@@ -254,14 +284,46 @@ export class GameScene {
       const costText = info.walkable ? String(info.cost) : 'blocked';
       lines.push('Tile (' + this.hoveredTile.x + ', ' + this.hoveredTile.y + '): ' + info.name + ', cost ' + costText);
     }
-    lines.push('Overlays: 1 paths ' + onOff(this.overlays.paths) + '  2 HPA* ' + onOff(this.overlays.hpa) +
-      '  4 FSM ' + onOff(this.overlays.states) + '  5 bridges ' + onOff(this.overlays.bridges) +
-      '  7 hash ' + onOff(this.overlays.hash));
-    lines.push('T: stress test (+300 enemies)   R: new game   L: AI Lab');
     return lines;
   }
-}
 
-function onOff(flag) {
-  return flag ? 'ON' : 'off';
+  // Right panel: the state of the game.
+  statusLines() {
+    const world = this.world;
+    const commander = world.commander;
+    const commanderText = commander.alive
+      ? 'Commander HP: ' + Math.ceil(commander.hp) + '/' + commander.maxHp
+      : 'Commander respawns in ' + world.commanderRespawnTimer.toFixed(1) + ' s';
+    return [
+      world.waveLabel(),
+      'Enemies: ' + world.enemyCount(),
+      'Base HP: ' + Math.ceil(world.base.hp) + '/' + world.base.maxHp,
+      commanderText,
+      'Allies: ' + world.allyCount() + '/' + ALLY_COUNT,
+      'Formation: ' + world.formationName + ' (F)',
+      world.guardMode ? 'Allies: GUARDING base (G)' : 'Allies: following (G)',
+      'H: help   Esc: pause',
+    ];
+  }
+
+  helpLines() {
+    const lines = [
+      'CONTROLS (H to close)',
+      '',
+      'Left click   move the Commander (A* + smoothing)',
+      'F            ally formation: LINE / V / BOX',
+      'G            allies guard the base / rejoin',
+      'K            kinematic / steering movement',
+      'P            enemy AI: uncertain / predictable rules',
+      'T            stress test: +300 enemies',
+      'Esc          pause menu',
+      '',
+      'OVERLAYS',
+    ];
+    for (const overlay of OVERLAYS) {
+      const state = this.overlays[overlay.name] ? 'ON ' : 'off';
+      lines.push(overlay.key + '  [' + state + ']  ' + overlay.label);
+    }
+    return lines;
+  }
 }
